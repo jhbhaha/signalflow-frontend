@@ -6,6 +6,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:label="SignalFlow"
@@ -16,6 +17,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!--[2026-06-05 00:00 KST] AdMob App ID 설정 (Set AdMob App ID) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-5880993243034417~8701943098" />
 
         <activity
             android:name=".MainActivity"

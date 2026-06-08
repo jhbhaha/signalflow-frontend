@@ -14,6 +14,9 @@ import 'signal_detail_history_page.dart';
 // [2026-05-28 20:15 KST]
 // 분석 가격 차트 카드 추가 (Add analysis price chart card)
 import '../widgets/analysis_price_chart_card.dart';
+// [2026-06-05 00:20 KST]
+// AdMob 배너 광고 위젯 (AdMob banner ad widget)
+import '../widgets/admob_banner_ad_widget.dart';
 // 가격 차트 모델 추가 (Add price chart model)
 import '../models/price_chart_point.dart';
 
@@ -133,6 +136,12 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
           'ai_status': analysis.aiStatus,
           'ai_summary': analysis.aiSummary,
           'ai_detail': analysis.aiDetail,
+          // [2026-06-08 21:10 KST]
+          // AI 추세 분석 결과 저장
+          'ai_trend': analysis.aiTrend,
+          'ai_trend_label': analysis.aiTrendLabel,
+          'ai_trend_summary': analysis.aiTrendSummary,
+          'ai_score_history': analysis.aiScoreHistory,
         };
 
         _chartItems = chartItems;
@@ -617,6 +626,26 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     final aiStatus = (result['ai_status'] ?? '-').toString();
     final aiSummary = (result['ai_summary'] ?? '-').toString();
     final aiDetail = (result['ai_detail'] ?? '-').toString();
+    // [2026-06-08 21:10 KST]
+    // AI 추세 결과
+    final aiTrendLabel =
+    (result['ai_trend_label'] ?? '-').toString();
+
+    final aiTrendSummary =
+    (result['ai_trend_summary'] ?? '-').toString();
+
+    final aiScoreHistory =
+    (result['ai_score_history'] as List<dynamic>? ?? [])
+        .map((e) => e.toString())
+        .toList();
+
+    // [2026-06-08 20:00 KST]
+    // AI 점수를 기반으로 상승 가능성과 위험도를 계산합니다. (Calculate up probability and risk score from AI score)
+    final int aiScoreValue =
+    aiScore is num ? aiScore.toInt().clamp(0, 100) : 0;
+
+    final int aiUpProbability = aiScoreValue;
+    final int aiRiskScore = 100 - aiScoreValue;
 
     final etfCorrelation = result['etf_correlation'];
     final etfUpProb = result['etf_up_prob'];
@@ -724,6 +753,58 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                         style: const TextStyle(
                           color: Colors.white60,
                           fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+
+                            const Text(
+                              'AI 흐름',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+
+                            const SizedBox(height: 8),
+
+                            Text(
+                              aiTrendLabel,
+                              style: const TextStyle(
+                                color: Colors.cyanAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+
+                            Text(
+                              aiTrendSummary,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            Text(
+                              aiScoreHistory.join(' → '),
+                              style: const TextStyle(
+                                color: Colors.orangeAccent,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -1047,6 +1128,56 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                       ),
                     ),
 
+                    const SizedBox(height: 14),
+
+// [Added by ChatGPT | 2026-06-08 20:00 KST]
+// AI 상승 가능성 게이지 (AI up probability gauge)
+                    Text(
+                      '상승 가능성: $aiUpProbability%',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: aiUpProbability / 100,
+                        minHeight: 10,
+                        backgroundColor: Colors.white12,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFFEF4444),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    // 2026-06-08 20:00 KST]
+                    // AI 위험도 게이지 (AI risk score gauge)
+                    Text(
+                      '위험도: $aiRiskScore%',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        value: aiRiskScore / 100,
+                        minHeight: 10,
+                        backgroundColor: Colors.white12,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF3B82F6),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 8),
 
                     Text(
@@ -1118,6 +1249,16 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
           title: '원본 메시지',
           child: Text(message),
         ),
+
+        const SizedBox(height: 16),
+
+        // [2026-06-05 00:20 KST]
+        // 분석 결과 화면 하단 AdMob 배너 광고 (Analysis result page bottom AdMob banner ad)
+        const AdMobBannerAdWidget(
+          realAdUnitId: 'ca-app-pub-5880993243034417/3861514107',
+        ),
+
+        const SizedBox(height: 8),
       ],
     );
   }

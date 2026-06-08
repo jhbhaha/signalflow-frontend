@@ -4,6 +4,7 @@
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'screens/home_page.dart';
 import 'services/notification_local_service.dart';
@@ -95,6 +96,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
+  // [2026-06-05 00:00 KST]
+  // Google Mobile Ads SDK 초기화 (Initialize Google Mobile Ads SDK)
+  await MobileAds.instance.initialize();
 
   await FirebaseMessaging.instance.requestPermission(
     alert: true,

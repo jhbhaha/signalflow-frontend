@@ -120,6 +120,12 @@ class AnalysisResponse {
   final String? aiStatus;
   final String? aiSummary;
   final String? aiDetail;
+  // [2026-06-08 21:20 KST]
+  // AI 점수 추세 분석 필드 (AI score trend analysis fields)
+  final String? aiTrend;
+  final String? aiTrendLabel;
+  final String? aiTrendSummary;
+  final List<int> aiScoreHistory;
 
 
   // [2026-04-15 19:40 KST] 기존 위젯 호환용 필드 추가
@@ -157,6 +163,10 @@ class AnalysisResponse {
     required this.aiStatus,
     required this.aiSummary,
     required this.aiDetail,
+    required this.aiTrend,
+    required this.aiTrendLabel,
+    required this.aiTrendSummary,
+    required this.aiScoreHistory,
 
     required this.shouldNotify,
     required this.statusChange,
@@ -202,6 +212,14 @@ class AnalysisResponse {
       aiStatus: json['ai_status'],
       aiSummary: json['ai_summary'],
       aiDetail: json['ai_detail'],
+      // [2026-06-08 21:20 KST]
+      // AI 점수 추세 분석 결과 파싱 (Parse AI score trend analysis result)
+      aiTrend: json['ai_trend'],
+      aiTrendLabel: json['ai_trend_label'],
+      aiTrendSummary: json['ai_trend_summary'],
+      aiScoreHistory: (json['ai_score_history'] as List<dynamic>? ?? [])
+          .map((e) => (e as num).toInt())
+          .toList(),
       shouldNotify: json['should_notify'] ?? false,
       statusChange: json['status_change'] != null
           ? StatusChange.fromJson(json['status_change'] as Map<String, dynamic>)
@@ -241,6 +259,10 @@ class AnalysisResponse {
       aiStatus: null,
       aiSummary: null,
       aiDetail: null,
+      aiTrend: null,
+      aiTrendLabel: null,
+      aiTrendSummary: null,
+      aiScoreHistory: const [],
 
       shouldNotify: false,
       statusChange: null,

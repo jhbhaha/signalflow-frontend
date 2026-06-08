@@ -27,6 +27,7 @@ import '../widgets/dashboard/etf_sector_flow_card.dart';
 import '../widgets/dashboard/market_risk_gauge_card.dart';
 import '../services/dashboard_cache_service.dart';
 import 'analysis_result_page.dart';
+import '../widgets/admob_banner_ad_widget.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -665,6 +666,13 @@ class _DashboardPageState extends State<DashboardPage>
                 ],
               ),
             ),
+            // [2026-06-05 00:00 KST]
+            // Dashboard 하단 AdMob 배너 광고 (Dashboard bottom AdMob banner ad)
+            const SizedBox(height: 16),
+            const AdMobBannerAdWidget(
+              realAdUnitId: 'ca-app-pub-5880993243034417/8072752082',
+            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),

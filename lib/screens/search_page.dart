@@ -88,7 +88,10 @@ class _SearchPageState extends State<SearchPage> {
         '${ApiService.baseUrl}/search/stocks?keyword=${Uri.encodeComponent(trimmed)}',
       );
 
-      final http.Response response = await http.get(uri);
+      final http.Response response =
+      await http.get(uri).timeout(
+        const Duration(seconds: 10),
+      );
 
       if (response.statusCode != 200) {
         throw Exception('검색 실패: ${response.statusCode}');
