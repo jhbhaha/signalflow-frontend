@@ -37,18 +37,22 @@ class StockDetailPage extends StatefulWidget {
 
 class _StockDetailPageState extends State<StockDetailPage> {
   final ApiService _apiService = ApiService();
+  // [2026-06-08 12:20 KST]
+  // AI 분석 영역 이동용 스크롤 컨트롤러 (Scroll controller for AI analysis section)
+  final ScrollController _scrollController = ScrollController();
+  // [2026-06-08 12:35 KST]
+  // 분석 설명 카드 위치 추적용 Key (Key for analysis description section)
+  final GlobalKey _analysisSectionKey = GlobalKey();
 
   AnalysisResponse? _analysis;
   // [2026-05-12 16:45 KST]
-  // ATTACK 성공률 통계 데이터 추가
-  // (Add ATTACK success statistics data)
+  // ATTACK 성공률 통계 데이터 추가 (Add ATTACK success statistics data)
   AttackStatistics? _attackStatistics;
   List<SignalHistoryItem> _timelineItems = [];
   bool _isLoading = true;
   String? _error;
   // [2026-05-22 20:10 KST]
-  // 분석 API 백그라운드 로딩 상태
-  // (Background analysis API loading state)
+  // 분석 API 백그라운드 로딩 상태 (Background analysis API loading state)
   bool _isAnalysisLoading = false;
 
   @override
@@ -61,9 +65,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
     });
   }
 
-  // [Added by ChatGPT | 2026-05-22 20:05 KST]
-// 종목 상세 진입 후 분석만 백그라운드로 실행
-// (Run analysis in background after stock detail page is shown)
+  // [2026-05-22 20:05 KST]
+  // 종목 상세 진입 후 분석만 백그라운드로 실행 (Run analysis in background after stock detail page is shown)
   Future<void> _runAnalysisOnly() async {
     if (_isAnalysisLoading) return;
 
@@ -105,8 +108,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
   }
 
   // [2026-05-22 19:45 KST]
-  // 종목 상세 진입 시 분석 API timeout으로 전체 화면이 막히지 않도록 수정
-  // (Prevent full detail page failure when analysis API times out)
+  // 종목 상세 진입 시 분석 API timeout으로 전체 화면이 막히지 않도록 수정 (Prevent full detail page failure when analysis API times out)
   Future<void> _loadAnalysis() async {
     debugPrint(
       'STOCK DETAIL LOAD: '
@@ -122,8 +124,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
           .toList();
 
       // [2026-05-22 19:55 KST]
-      // ATTACK 통계 API timeout 문제로 초기 로딩에서는 제외
-      // (Exclude ATTACK statistics from initial loading due to API timeout)
+      // ATTACK 통계 API timeout 문제로 초기 로딩에서는 제외 (Exclude ATTACK statistics from initial loading due to API timeout)
       AttackStatistics? attackStatistics;
 
       if (!mounted) return;
@@ -171,8 +172,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
   }
 
   // [2026-05-24 00:10 KST]
-  // 분석중 Skeleton 카드
-  // (Analysis loading skeleton card)
+  // 분석중 Skeleton 카드 (Analysis loading skeleton card)
 
   Widget _buildAnalysisSkeleton() {
     return Shimmer.fromColors(
@@ -216,8 +216,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
   }
 
   // [2026-05-13 11:30 KST]
-  // 종목 상세 공통 HUD 카드
-  // (Common HUD card for stock detail page)
+  // 종목 상세 공통 HUD 카드 (Common HUD card for stock detail page)
   Widget _buildHudCard({
     required Widget child,
   }) {
@@ -243,9 +242,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
-  // [Added by ChatGPT | 2026-05-13 12:10 KST]
-  // ATTACK 통계 HUD 박스
-  // (ATTACK statistics HUD box)
+  // [2026-05-13 12:10 KST]
+  // ATTACK 통계 HUD 박스 (ATTACK statistics HUD box)
   Widget _buildStatBox({
     required String title,
     required String value,
@@ -285,9 +283,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
-  // [Added by ChatGPT | 2026-05-13 12:20 KST]
-  // 종목 상세 핵심 수치 HUD 타일
-  // (Stock detail key metric HUD tile)
+  // [2026-05-13 12:20 KST]
+  // 종목 상세 핵심 수치 HUD 타일 (Stock detail key metric HUD tile)
   Widget _buildMetricTile({
     required String title,
     required String value,
@@ -328,9 +325,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
-  // [Added by ChatGPT | 2026-05-13 14:15 KST]
-// 상태 변화 점수 추이 차트
-// (Signal score trend chart)
+  // [2026-05-13 14:15 KST]
+  // 상태 변화 점수 추이 차트 (Signal score trend chart)
   Widget _buildSignalTrendChart() {
     if (_timelineItems.isEmpty) {
       return _buildHudCard(
@@ -446,9 +442,24 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
+  // [2026-06-08 12:35 KST]
+  // 분석 설명 영역으로 정확히 이동 (Scroll exactly to analysis section)
+  void _scrollToAiAnalysis() {
+    final context = _analysisSectionKey.currentContext;
+
+    if (context == null) {
+      return;
+    }
+
+    Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+  }
+
   // [2026-05-13 11:20 KST]
-  // SignalFlow 전체 상태 색상 규칙 통일
-  // (Unify SignalFlow status color rules)
+  // SignalFlow 전체 상태 색상 규칙 통일 (Unify SignalFlow status color rules)
   Color _statusColor(String status) {
     if (status == 'ANALYZING') {
       return const Color(0xFF3B82F6);
@@ -467,6 +478,14 @@ class _StockDetailPageState extends State<StockDetailPage> {
     }
 
     return const Color(0xFF64748B);
+  }
+
+  // [2026-06-08 12:20 KST]
+  // 스크롤 컨트롤러 해제 (Dispose scroll controller)
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -492,11 +511,11 @@ class _StockDetailPageState extends State<StockDetailPage> {
           : RefreshIndicator(
         onRefresh: _loadAnalysis,
         child: ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
-            // [Modified by ChatGPT | 2026-05-13 11:10 KST]
-// 종목 상세 Hero HUD 카드 추가
-// (Add stock detail hero HUD card)
+            // [2026-05-13 11:10 KST]
+            // 종목 상세 Hero HUD 카드 추가 (Add stock detail hero HUD card)
 
             Container(
               padding: const EdgeInsets.all(20),
@@ -598,6 +617,17 @@ class _StockDetailPageState extends State<StockDetailPage> {
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // [2026-06-08 12:20 KST]
+                  // SignalFlow AI 분석 바로가기 버튼 (SignalFlow AI analysis shortcut button)
+
+                  FilledButton.icon(
+                    onPressed: _scrollToAiAnalysis,
+                    icon: const Icon(Icons.smart_toy),
+                    label: const Text('SignalFlow AI 분석 보기'),
                   ),
 
                   const SizedBox(height: 24),
@@ -710,9 +740,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
             const SizedBox(height: 24),
 
-            // [Modified by ChatGPT | 2026-05-13 12:20 KST]
-// 핵심 수치 영역 HUD Grid 스타일 적용
-// (Apply HUD grid style to key metrics area)
+            // [2026-05-13 12:20 KST]
+            // 핵심 수치 영역 HUD Grid 스타일 적용 (Apply HUD grid style to key metrics area)
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -771,15 +800,16 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
             const SizedBox(height: 24),
 
-            // [Modified by ChatGPT | 2026-05-13 11:35 KST]
-            // 분석 설명 카드 HUD 스타일 적용
-            // (Apply HUD style to analysis description card)
-            _buildHudCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '분석 설명',
+            // [2026-05-13 11:35 KST]
+            // 분석 설명 카드 HUD 스타일 적용 (Apply HUD style to analysis description card)
+        Container(
+          key: _analysisSectionKey,
+          child: _buildHudCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '분석 설명',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -797,18 +827,17 @@ class _StockDetailPageState extends State<StockDetailPage> {
                       height: 1.45,
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
+          ),
+        ),
 
-            // [Added by ChatGPT | 2026-05-12 15:00 KST]
-            // 분석 근거 목록 표시 추가
-            // (Add analysis reasons list display)
+            // [2026-05-12 15:00 KST]
+            // 분석 근거 목록 표시 추가 (Add analysis reasons list display)
             const SizedBox(height: 24),
 
-            // [Modified by ChatGPT | 2026-05-13 14:25 KST]
-// 분석 이유 카드 HUD 스타일 적용
-// (Apply HUD style to analysis reasons card)
+            // [2026-05-13 14:25 KST]
+            // 분석 이유 카드 HUD 스타일 적용 (Apply HUD style to analysis reasons card)
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -875,15 +904,13 @@ class _StockDetailPageState extends State<StockDetailPage> {
               ),
             ),
 
-            // [Added by ChatGPT | 2026-05-12 15:20 KST]
-// ETF 연동 분석 카드 추가
-// (Add ETF correlation analysis card)
+            // [2026-05-12 15:20 KST]
+            // ETF 연동 분석 카드 추가 (Add ETF correlation analysis card)
 
             const SizedBox(height: 24),
 
-            // [Modified by ChatGPT | 2026-05-13 11:50 KST]
-// ETF 연동 분석 HUD 스타일 적용
-// (Apply HUD style to ETF correlation analysis card)
+            // [2026-05-13 11:50 KST]
+            // ETF 연동 분석 HUD 스타일 적용 (Apply HUD style to ETF correlation analysis card)
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -996,9 +1023,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
               ),
             ),
 
-            // [Added by ChatGPT | 2026-05-12 15:45 KST]
-// 해당 종목 상태 변화 타임라인 카드 추가
-// (Add stock status change timeline card)
+            // [2026-05-12 15:45 KST]
+            // 해당 종목 상태 변화 타임라인 카드 추가 (Add stock status change timeline card)
 
             const SizedBox(height: 24),
 
@@ -1008,9 +1034,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
             const SizedBox(height: 20),
 
-            // [Modified by ChatGPT | 2026-05-13 12:00 KST]
-            // 상태 변화 타임라인 HUD 스타일 적용
-            // (Apply HUD style to signal timeline card)
+            // [2026-05-13 12:00 KST]
+            // 상태 변화 타임라인 HUD 스타일 적용 (Apply HUD style to signal timeline card)
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1121,15 +1146,13 @@ class _StockDetailPageState extends State<StockDetailPage> {
               ),
             ),
 
-            // [Added by ChatGPT | 2026-05-12 16:45 KST]
-// ATTACK 성공률 통계 카드 추가
-// (Add ATTACK success statistics card)
+            // [2026-05-12 16:45 KST]
+            // ATTACK 성공률 통계 카드 추가 (Add ATTACK success statistics card)
 
             const SizedBox(height: 24),
 
-            // [Modified by ChatGPT | 2026-05-13 12:10 KST]
-// ATTACK 성공률 통계 HUD 스타일 적용
-// (Apply HUD style to ATTACK statistics card)
+            // [2026-05-13 12:10 KST]
+            // ATTACK 성공률 통계 HUD 스타일 적용 (Apply HUD style to ATTACK statistics card)
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
