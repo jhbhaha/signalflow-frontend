@@ -197,6 +197,9 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     return Column(
       children: <Widget>[
         // SignalFlow 스타일 검색창 적용 (Apply SignalFlow search box style)
@@ -204,14 +207,20 @@ class _SearchPageState extends State<SearchPage> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
           child: Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF111827),
+              color: isDark
+                  ? const Color(0xFF111827)
+                  : Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.08),
+                color: Theme.of(context)
+                    .dividerColor
+                    .withValues(alpha: 0.20),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.22),
+                  color: Colors.black.withValues(
+                    alpha: isDark ? 0.22 : 0.08,
+                  ),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -219,24 +228,24 @@ class _SearchPageState extends State<SearchPage> {
             ),
             child: TextField(
               controller: _controller,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 15,
               ),
               decoration: InputDecoration(
                 hintText: '종목명 또는 티커 검색',
                 hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.45),
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
-                prefixIcon: const Icon(
+                prefixIcon: Icon(
                   Icons.search,
                   color: Color(0xFF3B82F6),
                 ),
                 suffixIcon: _controller.text.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: Colors.white54,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                   onPressed: () {
                     _controller.clear();
@@ -286,10 +295,10 @@ class _SearchPageState extends State<SearchPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 '인기 검색',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -314,16 +323,20 @@ class _SearchPageState extends State<SearchPage> {
                         vertical: 9,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.05),
+                          color: Theme.of(context)
+                              .dividerColor
+                              .withValues(alpha: 0.20),
                         ),
                       ),
                       child: Text(
                         keyword,
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -336,10 +349,10 @@ class _SearchPageState extends State<SearchPage> {
               if (_recentKeywords.isNotEmpty) ...[
                 const SizedBox(height: 18),
 
-                const Text(
+                Text(
                   '최근 검색',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -364,7 +377,9 @@ class _SearchPageState extends State<SearchPage> {
                           vertical: 9,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF111827),
+                          color: isDark
+                              ? const Color(0xFF111827)
+                              : Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.04),
@@ -373,16 +388,16 @@ class _SearchPageState extends State<SearchPage> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.history,
                               size: 14,
-                              color: Colors.white54,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                             const SizedBox(width: 6),
                             Text(
                               keyword,
-                              style: const TextStyle(
-                                color: Colors.white70,
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
                                 fontSize: 12,
                               ),
                             ),
@@ -406,18 +421,22 @@ class _SearchPageState extends State<SearchPage> {
               margin: const EdgeInsets.all(24),
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: const Color(0xFF111827),
+                color: isDark
+                    ? const Color(0xFF111827)
+                    : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Theme.of(context)
+                      .dividerColor
+                      .withValues(alpha: 0.20),
                 ),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.manage_search,
-                    color: Colors.white38,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     size: 48,
                   ),
 
@@ -426,7 +445,7 @@ class _SearchPageState extends State<SearchPage> {
                   Text(
                     '종목을 검색해보세요',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -438,7 +457,7 @@ class _SearchPageState extends State<SearchPage> {
                     '종목명 또는 티커를 입력하면\n실시간 분석 종목을 찾을 수 있습니다.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white38,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -453,18 +472,22 @@ class _SearchPageState extends State<SearchPage> {
               margin: const EdgeInsets.all(24),
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: const Color(0xFF111827),
+                color: isDark
+                    ? const Color(0xFF111827)
+                    : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Theme.of(context)
+                      .dividerColor
+                      .withValues(alpha: 0.20),
                 ),
               ),
-              child: const Column(
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.search_off,
-                    color: Colors.white38,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     size: 48,
                   ),
 
@@ -473,7 +496,7 @@ class _SearchPageState extends State<SearchPage> {
                   Text(
                     '검색 결과가 없습니다.',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -485,7 +508,7 @@ class _SearchPageState extends State<SearchPage> {
                     '종목명 또는 티커를 다시 입력해보세요.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.white38,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -511,7 +534,9 @@ class _SearchPageState extends State<SearchPage> {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF111827),
+                  color: isDark
+                      ? const Color(0xFF111827)
+                      : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.06),
@@ -542,7 +567,7 @@ class _SearchPageState extends State<SearchPage> {
                                 .withValues(alpha: 0.14),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.show_chart,
                             color: Color(0xFF3B82F6),
                           ),
@@ -556,8 +581,8 @@ class _SearchPageState extends State<SearchPage> {
                             children: [
                               Text(
                                 stockName,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
@@ -571,13 +596,15 @@ class _SearchPageState extends State<SearchPage> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
+                                  color: Theme.of(context)
+                                      .dividerColor
+                                      .withValues(alpha: 0.20),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                                 child: Text(
                                   ticker,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -620,7 +647,7 @@ class _SearchPageState extends State<SearchPage> {
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.star_outline,
                               color: Color(0xFF22C55E),
                               size: 20,

@@ -9,6 +9,7 @@ import '../models/analysis_response.dart';
 import '../models/watch_item.dart';
 import '../services/api_service.dart';
 import '../models/signal_history_item.dart';
+import 'stock_detail_page.dart';
 
 class WatchlistPage extends StatefulWidget {
   const WatchlistPage({super.key});
@@ -280,6 +281,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
       String label,
       Color color,
       ) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
     final bool selected =
     value == 'SCORE' || value == 'NAME'
         ? _selectedSort == value
@@ -306,12 +309,16 @@ class _WatchlistPageState extends State<WatchlistPage> {
           decoration: BoxDecoration(
             color: selected
                 ? color.withValues(alpha: 0.16)
-                : const Color(0xFF1E293B),
+                : isDark
+                ? const Color(0xFF1E293B)
+                : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(
               color: selected
                   ? color.withValues(alpha: 0.6)
-                  : Colors.white.withValues(alpha: 0.06),
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
             ),
             boxShadow: selected
                 ? [
@@ -326,7 +333,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? color : Colors.white70,
+              color: selected
+                  ? color
+                  : Theme.of(context).textTheme.bodyMedium?.color,
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -337,13 +346,19 @@ class _WatchlistPageState extends State<WatchlistPage> {
   }
 
   Widget _buildInfoCard() {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: isDark
+            ? const Color(0xFF1E293B)
+            : Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
       ),
       child: Row(
@@ -355,18 +370,18 @@ class _WatchlistPageState extends State<WatchlistPage> {
               color: Color(0xFF3B82F6).withValues(alpha: 0.16),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.auto_graph,
               color: Color(0xFF3B82F6),
               size: 20,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
               '관심종목은 최근 분석 캐시를 빠르게 표시합니다. 최신 분석은 아래 버튼으로 수동 실행할 수 있습니다.',
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
                 fontSize: 13,
                 height: 1.35,
               ),
@@ -448,12 +463,14 @@ class _WatchlistPageState extends State<WatchlistPage> {
       curve: Curves.easeInOut,
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1220),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isAttack
               ? const Color(0xFFEF4444).withValues(alpha: 0.45)
-              : Colors.white.withValues(alpha: 0.06),
+              : Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
         boxShadow: [
           BoxShadow(
@@ -483,13 +500,18 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
             if (!mounted) return;
 
-            // [2026-05-24 03:05 KST]
-            // 관심종목 클릭 시 추천종목과 동일하게 분석 결과 페이지로 이동
-            // (Navigate to analysis result page from watchlist item like recommendation item)
-            Navigator.pushNamed(
+            // [2026-06-12 23:55 KST]
+            // 관심종목 선택 시 분석 결과 페이지가 아니라 종목 상세 페이지로 이동
+            Navigator.push(
               context,
-              '/analysis-result',
-              arguments: selectedResult,
+              MaterialPageRoute(
+                builder: (_) => StockDetailPage(
+                  ticker: item.ticker,
+                  stockName: item.stockName,
+                  finalStatus: status,
+                  finalScore: score.toString(),
+                ),
+              ),
             );
           } catch (error) {
             if (!mounted) return;
@@ -533,8 +555,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                       item.stockName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -542,8 +564,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                     const SizedBox(height: 3),
                     Text(
                       item.ticker,
-                      style: const TextStyle(
-                        color: Color(0xFF94A3B8),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 11,
                       ),
                     ),
@@ -588,8 +610,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                 children: [
                   Text(
                     close > 0 ? close.toStringAsFixed(0) : '-',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -657,9 +679,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
                   minWidth: 28,
                   minHeight: 28,
                 ),
-                icon: const Icon(
+                icon: Icon(
                   Icons.close,
-                  color: Colors.white38,
+                  color: Theme.of(context).disabledColor,
                 ),
                 onPressed: () => _deleteWatchItem(item.ticker),
               ),
@@ -673,15 +695,21 @@ class _WatchlistPageState extends State<WatchlistPage> {
   // 관심종목 Skeleton 카드
   // (Watchlist skeleton card)
   Widget _buildSkeletonWatchCard() {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Shimmer.fromColors(
-        baseColor: const Color(0xFF1E293B),
-        highlightColor: const Color(0xFF334155),
+        baseColor: isDark
+            ? const Color(0xFF1E293B)
+            : Theme.of(context).cardColor,
+        highlightColor: isDark
+            ? const Color(0xFF334155)
+            : const Color(0xFFF8FAFC),
         child: Container(
           height: 76,
           decoration: BoxDecoration(
-            color: const Color(0xFF0B1220),
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
@@ -694,8 +722,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
                 Container(
                   width: 34,
                   height: 34,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.onSurface,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -711,7 +739,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         width: 120,
                         height: 14,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
@@ -722,7 +750,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                         width: 80,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onSurface,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
@@ -734,7 +762,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                   width: 52,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     borderRadius: BorderRadius.circular(999),
                   ),
                 ),
@@ -750,15 +778,19 @@ class _WatchlistPageState extends State<WatchlistPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
       ),
       child: Text(
         message,
-        style: const TextStyle(color: Colors.white70),
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+        ),
       ),
     );
   }
@@ -791,7 +823,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                 '관심종목',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
 
@@ -841,7 +873,7 @@ class _WatchlistPageState extends State<WatchlistPage> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _isLoading ? null : _reloadAnalysis,
-                  icon: const Icon(Icons.refresh),
+                  icon: Icon(Icons.refresh),
                   label: const Text('수동으로 다시 분석'),
                 ),
               ),

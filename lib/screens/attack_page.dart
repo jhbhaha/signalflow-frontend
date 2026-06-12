@@ -81,7 +81,7 @@ class _AttackPageState extends State<AttackPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: const Color(0xFF22C55E).withValues(alpha: 0.25),
@@ -110,11 +110,11 @@ class _AttackPageState extends State<AttackPage> {
             ),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Text(
               '공격 후보는 관심종목 중 ATTACK 상태로 분석된 종목만 표시됩니다.',
               style: TextStyle(
-                color: Colors.white70,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
                 fontSize: 13,
                 height: 1.35,
               ),
@@ -134,10 +134,10 @@ class _AttackPageState extends State<AttackPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Signal Strength',
           style: TextStyle(
-            color: Colors.white54,
+            color: Theme.of(context).textTheme.bodyMedium?.color,
             fontSize: 11,
             fontWeight: FontWeight.bold,
           ),
@@ -148,7 +148,9 @@ class _AttackPageState extends State<AttackPage> {
           child: LinearProgressIndicator(
             value: value,
             minHeight: 8,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            backgroundColor: Theme.of(context)
+                .dividerColor
+                .withValues(alpha: 0.20),
             valueColor: AlwaysStoppedAnimation<Color>(color),
           ),
         ),
@@ -222,7 +224,7 @@ class _AttackPageState extends State<AttackPage> {
           gradient: LinearGradient(
             colors: [
               statusColor.withValues(alpha: 0.14),
-              const Color(0xFF0F172A),
+              Theme.of(context).cardColor,
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -282,8 +284,8 @@ class _AttackPageState extends State<AttackPage> {
                     Expanded(
                       child: Text(
                         '${item.stockName} (${item.ticker})',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
@@ -355,13 +357,13 @@ class _AttackPageState extends State<AttackPage> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
+                      child: Text(
                         '관심종목 기반',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -390,16 +392,18 @@ class _AttackPageState extends State<AttackPage> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
       ),
       child: Text(
         message,
-        style: const TextStyle(
-          color: Colors.white70,
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
           height: 1.4,
         ),
       ),
@@ -409,7 +413,7 @@ class _AttackPageState extends State<AttackPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('공격 후보'),
         centerTitle: true,

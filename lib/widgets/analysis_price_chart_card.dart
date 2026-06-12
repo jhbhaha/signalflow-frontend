@@ -28,6 +28,16 @@ class AnalysisPriceChartCard extends StatelessWidget {
 
     final minPrice = items.map((e) => e.close).reduce((a, b) => a < b ? a : b);
     final maxPrice = items.map((e) => e.close).reduce((a, b) => a > b ? a : b);
+    // [2026-06-11 22:10 KST]
+    // 라이트/다크 모드에 맞게 차트 텍스트와 종가 라인 색상 적용 (Apply theme-aware chart text and close price line colors)
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color chartTextColor =
+        Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey;
+
+    final Color closeLineColor =
+    isDark ? Colors.white : const Color(0xFF111827);
 
     // [2026-05-29 00:35 KST]
     // 한국식 가격 표시용 콤마 포맷 함수 (Comma formatter for Korean stock prices)
@@ -53,24 +63,24 @@ class AnalysisPriceChartCard extends StatelessWidget {
               // [2026-05-29 00:20 KST]
               // 차트 제목 추가 (Add chart title)
 
-              const Text(
+              Text(
                 '최근 90거래일 가격 및 이동평균선',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
 
               const SizedBox(height: 12),
-              const Wrap(
+              Wrap(
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  _LegendItem(color: Color(0xFFFFFFFF), label: '종가'),
-                  _LegendItem(color: Color(0xFFEF4444), label: 'MA5'),
-                  _LegendItem(color: Color(0xFFF59E0B), label: 'MA20 기준선'),
-                  _LegendItem(color: Color(0xFF3B82F6), label: 'MA60'),
+                  _LegendItem(color: closeLineColor, label: '종가'),
+                  const _LegendItem(color: Color(0xFFEF4444), label: 'MA5'),
+                  const _LegendItem(color: Color(0xFFF59E0B), label: 'MA20 기준선'),
+                  const _LegendItem(color: Color(0xFF3B82F6), label: 'MA60'),
                 ],
               ),
               const SizedBox(height: 12),
@@ -112,8 +122,8 @@ class AnalysisPriceChartCard extends StatelessWidget {
                               padding: const EdgeInsets.only(top: 6),
                               child: Text(
                                 date.substring(5),
-                                style: const TextStyle(
-                                  color: Colors.white54,
+                                style: TextStyle(
+                                  color: chartTextColor,
                                   fontSize: 10,
                                 ),
                               ),
@@ -129,8 +139,8 @@ class AnalysisPriceChartCard extends StatelessWidget {
                           getTitlesWidget: (value, meta) {
                             return Text(
                               formatPrice(value),
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: chartTextColor,
                                 fontSize: 10,
                               ),
                             );
@@ -141,7 +151,7 @@ class AnalysisPriceChartCard extends StatelessWidget {
                     lineBarsData: [
                       _line(
                         values: items.map((e) => e.close).toList(),
-                        color: const Color(0xFFFFFFFF),
+                        color: closeLineColor,
                       ),
                       _line(
                         values: items.map((e) => e.ma5).toList(),
@@ -223,8 +233,8 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodySmall?.color,
             fontSize: 12,
           ),
         ),

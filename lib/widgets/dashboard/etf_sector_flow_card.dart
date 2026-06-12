@@ -85,7 +85,7 @@ class EtfSectorFlowCard extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: color.withValues(alpha: 0.18),
@@ -117,9 +117,9 @@ class EtfSectorFlowCard extends StatelessWidget {
 
                           Text(
                             '상관 ${sector.avgCorrelation.toStringAsFixed(2)} · 표본 ${sector.count}개',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Colors.white54,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                           ),
                         ],
@@ -142,9 +142,9 @@ class EtfSectorFlowCard extends StatelessWidget {
 
                         Text(
                           '${(sector.avgUpProbability * 100).toStringAsFixed(0)}%',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.white54,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
@@ -162,25 +162,38 @@ class EtfSectorFlowCard extends StatelessWidget {
   Widget _buildSignalFlowCard({
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Builder(
+      builder: (context) {
+        final bool isDark =
+            Theme.of(context).brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark ? 0.25 : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

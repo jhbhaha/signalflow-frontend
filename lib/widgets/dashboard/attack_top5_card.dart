@@ -104,8 +104,8 @@ class AttackTop5Card extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
                       color: shouldPulse
-                          ? const Color(0xFF1E0B0B)
-                          : const Color(0xFF0F172A),
+                          ? const Color(0xFFEF4444).withValues(alpha: 0.08)
+                          : Theme.of(context).colorScheme.surface,
                       boxShadow: [
                         if (isNewAttack)
                           BoxShadow(
@@ -160,9 +160,9 @@ class AttackTop5Card extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 signal.ticker,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.white54,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
                                 ),
                               ),
                             ],
@@ -221,25 +221,38 @@ class AttackTop5Card extends StatelessWidget {
   Widget _buildSignalFlowCard({
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Builder(
+      builder: (context) {
+        final bool isDark =
+            Theme.of(context).brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark ? 0.25 : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

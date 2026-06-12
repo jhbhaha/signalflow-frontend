@@ -271,19 +271,27 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     }
   }
 
-  // [2026-05-19 14:20 KST]
-  // 분석 결과 Skeleton 카드
-  // (Analysis result skeleton card)
+  // [2026-06-11 22:00 KST]
+  // 라이트/다크 모드에 맞는 분석 결과 Skeleton 색상 적용 (Apply theme-aware skeleton colors for analysis result page)
   Widget _buildSkeletonSection({
     required double height,
   }) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E293B),
-      highlightColor: const Color(0xFF334155),
+      baseColor: isDark
+          ? const Color(0xFF1E293B)
+          : const Color(0xFFE5E7EB),
+      highlightColor: isDark
+          ? const Color(0xFF334155)
+          : const Color(0xFFF8FAFC),
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: isDark
+              ? const Color(0xFF1E293B)
+              : const Color(0xFFE5E7EB),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
@@ -299,9 +307,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-
               const SizedBox(height: 18),
-
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
@@ -364,6 +370,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
       if (etfItems.isEmpty) {
         return const Text('ETF 추천 결과 없음');
       }
+      final bool isDark =
+          Theme.of(context).brightness == Brightness.dark;
 
       return Column(
         children: etfItems.map((item) {
@@ -409,7 +417,9 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               gradient: LinearGradient(
                 colors: [
                   trendColor.withValues(alpha: 0.16),
-                  const Color(0xFF0F172A),
+                  isDark
+                      ? const Color(0xFF0F172A)
+                      : Theme.of(context).cardColor,
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -470,8 +480,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
                 Text(
                   '상관계수 ${correlation.toStringAsFixed(3)}',
-                  style: const TextStyle(
-                    color: Colors.white70,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
 
@@ -536,6 +546,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
   }
 
   Widget _buildBody() {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
     if (_isLoading) {
       return ListView(
         padding: const EdgeInsets.all(16),
@@ -667,10 +679,11 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
             gradient: LinearGradient(
               colors: [
                 finalStatusColor.withValues(alpha: 0.22),
-                const Color(0xFF0F172A),
+
+                isDark
+                    ? const Color(0xFF0F172A)
+                    : Theme.of(context).cardColor,
               ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
             ),
             border: Border.all(
               color: finalStatusColor.withValues(alpha: 0.40),
@@ -688,10 +701,10 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
             children: [
               Text(
                 stockName,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
 
@@ -699,41 +712,45 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
               Text(
                 ticker,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white54,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   letterSpacing: 1.2,
                 ),
               ),
 
               const SizedBox(height: 22),
 
+              // [Modified by ChatGPT | 2026-06-12 23:35 KST]
+// AI 흐름 카드를 Row 밖으로 분리하여 RenderBox 레이아웃 오류 수정
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: finalStatusColor.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: finalStatusColor.withValues(alpha: 0.45),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
                       ),
-                    ),
-                    child: Text(
-                      _statusDisplayName(finalStatus),
-                      style: TextStyle(
-                        color: finalStatusColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      decoration: BoxDecoration(
+                        color: finalStatusColor.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: finalStatusColor.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Text(
+                        _statusDisplayName(finalStatus),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: finalStatusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),
-
-                  const Spacer(),
-
+                  const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -745,66 +762,12 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                           fontSize: 34,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         statusLabel,
-                        style: const TextStyle(
-                          color: Colors.white60,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.04),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-
-                            const Text(
-                              'AI 흐름',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-
-                            const SizedBox(height: 8),
-
-                            Text(
-                              aiTrendLabel,
-                              style: const TextStyle(
-                                color: Colors.cyanAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            const SizedBox(height: 6),
-
-                            Text(
-                              aiTrendSummary,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                              ),
-                            ),
-
-                            const SizedBox(height: 10),
-
-                            Text(
-                              aiScoreHistory.join(' → '),
-                              style: const TextStyle(
-                                color: Colors.orangeAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],
@@ -812,12 +775,60 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                 ],
               ),
 
+              const SizedBox(height: 20),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'AI 흐름',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      aiTrendLabel,
+                      style: TextStyle(
+                        color: isDark ? Colors.cyanAccent : const Color(0xFF0891B2),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      aiTrendSummary,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      aiScoreHistory.join(' → '),
+                      style: TextStyle(
+                        color: isDark ? Colors.orangeAccent : const Color(0xFFF59E0B),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 18),
 
               Text(
                 summary,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontSize: 14,
                   height: 1.45,
                 ),
@@ -880,10 +891,10 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         '상태 변화 감지',
                         style: TextStyle(
-                          color: Colors.white70,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -904,8 +915,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                             : finalStatus.contains('RISK')
                             ? '위험 신호가 강해진 상태입니다.'
                             : '관찰이 필요한 흐름입니다.',
-                        style: const TextStyle(
-                          color: Colors.white60,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 12,
                         ),
                       ),
@@ -1066,19 +1077,19 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                 // (Status summary detail page hint)
                 const SizedBox(height: 12),
 
-                const Row(
+                Row(
                   children: [
                     Icon(
                       Icons.touch_app_rounded,
                       size: 16,
-                      color: Colors.white54,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Text(
                       '터치하여 상태 설명 보기',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white54,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ],
@@ -1111,7 +1122,9 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
+                  color: isDark
+                      ? const Color(0xFF0F172A)
+                      : Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: Colors.cyanAccent.withValues(alpha: 0.3),
@@ -1134,10 +1147,10 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 // AI 상승 가능성 게이지 (AI up probability gauge)
                     Text(
                       '상승 가능성: $aiUpProbability%',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1146,7 +1159,9 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                       child: LinearProgressIndicator(
                         value: aiUpProbability / 100,
                         minHeight: 10,
-                        backgroundColor: Colors.white12,
+                        backgroundColor: Theme.of(context)
+                            .dividerColor
+                            .withValues(alpha: 0.20),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFFEF4444),
                         ),
@@ -1159,10 +1174,10 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                     // AI 위험도 게이지 (AI risk score gauge)
                     Text(
                       '위험도: $aiRiskScore%',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -1171,7 +1186,9 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                       child: LinearProgressIndicator(
                         value: aiRiskScore / 100,
                         minHeight: 10,
-                        backgroundColor: Colors.white12,
+                        backgroundColor: Theme.of(context)
+                            .dividerColor
+                            .withValues(alpha: 0.20),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFF3B82F6),
                         ),
@@ -1202,8 +1219,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
                     Text(
                       aiSummary,
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         height: 1.4,
                       ),
                     ),
@@ -1212,8 +1229,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
                     Text(
                       aiDetail,
-                      style: const TextStyle(
-                        color: Colors.white60,
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontSize: 13,
                         height: 1.5,
                       ),

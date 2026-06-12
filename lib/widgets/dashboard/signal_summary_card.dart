@@ -52,7 +52,7 @@ class SignalSummaryCard extends StatelessWidget {
                 color: const Color(0xFF64748B),
               ),
               const SizedBox(height: 18),
-              _buildStatusDonutChart(summary),
+              _buildStatusDonutChart(context, summary),
             ],
           ),
         ],
@@ -63,25 +63,38 @@ class SignalSummaryCard extends StatelessWidget {
   Widget _buildSignalFlowCard({
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Builder(
+      builder: (context) {
+        final bool isDark =
+            Theme.of(context).brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark ? 0.25 : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -148,7 +161,10 @@ class SignalSummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusDonutChart(DashboardSummary summary) {
+  Widget _buildStatusDonutChart(
+      BuildContext context,
+      DashboardSummary summary,
+      ) {
     final int attack = summary.attackCount;
     final int watch = summary.watchCount;
     final int risk = summary.riskCount;
@@ -170,8 +186,8 @@ class SignalSummaryCard extends StatelessWidget {
             child: Center(
               child: Text(
                 total.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                   fontSize: 20,
                 ),
@@ -184,13 +200,13 @@ class SignalSummaryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildLegendItem('공격', attack, const Color(0xFFEF4444), total),
+              _buildLegendItem(context, '공격', attack, const Color(0xFFEF4444), total),
               const SizedBox(height: 8),
-              _buildLegendItem('관찰', watch, const Color(0xFFF59E0B), total),
+              _buildLegendItem(context, '관찰', watch, const Color(0xFFF59E0B), total),
               const SizedBox(height: 8),
-              _buildLegendItem('위험', risk, const Color(0xFF3B82F6), total),
+              _buildLegendItem(context, '위험', risk, const Color(0xFF3B82F6), total),
               const SizedBox(height: 8),
-              _buildLegendItem('대기', wait, const Color(0xFF64748B), total),
+              _buildLegendItem(context, '대기', wait, const Color(0xFF64748B), total),
             ],
           ),
         ),
@@ -199,6 +215,7 @@ class SignalSummaryCard extends StatelessWidget {
   }
 
   Widget _buildLegendItem(
+      BuildContext context,
       String label,
       int count,
       Color color,
@@ -220,8 +237,8 @@ class SignalSummaryCard extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontSize: 12,
             ),
           ),

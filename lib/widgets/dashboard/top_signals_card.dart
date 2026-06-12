@@ -136,7 +136,7 @@ class TopSignalsCard extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         itemStatusColor.withValues(alpha: 0.10),
-                        const Color(0xFF0F172A),
+                        Theme.of(context).cardColor,
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -208,15 +208,20 @@ class TopSignalsCard extends StatelessWidget {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.05),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surface,
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
                                     signal.etfReason ?? 'ETF 영향 없음',
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.white70,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color,
                                     ),
                                   ),
                                 ),
@@ -252,7 +257,11 @@ class TopSignalsCard extends StatelessWidget {
                                         ? const Color(0xFFEF4444)
                                         : isDown
                                         ? const Color(0xFF3B82F6)
-                                        : Colors.white54;
+                                        : Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color ??
+                                        Colors.grey;
 
                                     final String deltaText = scoreChange == 0
                                         ? ''
@@ -314,25 +323,38 @@ class TopSignalsCard extends StatelessWidget {
   Widget _buildSignalFlowCard({
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Builder(
+      builder: (context) {
+        final bool isDark =
+            Theme.of(context).brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark ? 0.25 : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

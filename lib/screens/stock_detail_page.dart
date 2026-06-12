@@ -17,6 +17,18 @@ import 'package:fl_chart/fl_chart.dart';
 // (Add skeleton loading UI package)
 import 'package:shimmer/shimmer.dart';
 
+// [2026-06-12 23:59 KST]
+// 종목별 AI 분석 결과 임시 캐시
+class _CachedStockAnalysis {
+  _CachedStockAnalysis({
+    required this.analysis,
+    required this.updatedAt,
+  });
+
+  final AnalysisResponse analysis;
+  final DateTime updatedAt;
+}
+
 class StockDetailPage extends StatefulWidget {
   final String ticker;
   final String stockName;
@@ -36,13 +48,15 @@ class StockDetailPage extends StatefulWidget {
 }
 
 class _StockDetailPageState extends State<StockDetailPage> {
+  // [2026-06-12 23:59 KST]
+  // 앱 실행 중 종목별 최근 AI 분석 결과 캐시
+  static final Map<String, _CachedStockAnalysis> _analysisCache = {};
+
+  DateTime? _analysisUpdatedAt;
+
   final ApiService _apiService = ApiService();
-  // [2026-06-08 12:20 KST]
-  // AI 분석 영역 이동용 스크롤 컨트롤러 (Scroll controller for AI analysis section)
-  final ScrollController _scrollController = ScrollController();
   // [2026-06-08 12:35 KST]
   // 분석 설명 카드 위치 추적용 Key (Key for analysis description section)
-  final GlobalKey _analysisSectionKey = GlobalKey();
 
   AnalysisResponse? _analysis;
   // [2026-05-12 16:45 KST]
@@ -70,6 +84,23 @@ class _StockDetailPageState extends State<StockDetailPage> {
   Future<void> _runAnalysisOnly() async {
     if (_isAnalysisLoading) return;
 
+    final cached = _analysisCache[widget.ticker];
+    final now = DateTime.now();
+
+    if (cached != null) {
+      setState(() {
+        _analysis = cached.analysis;
+        _analysisUpdatedAt = cached.updatedAt;
+      });
+
+      final bool isFresh =
+          now.difference(cached.updatedAt).inMinutes < 5;
+
+      if (isFresh) {
+        return;
+      }
+    }
+
     setState(() {
       _isAnalysisLoading = true;
     });
@@ -86,8 +117,16 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
       if (!mounted) return;
 
+      final DateTime updatedAt = DateTime.now();
+
+      _analysisCache[widget.ticker] = _CachedStockAnalysis(
+        analysis: result,
+        updatedAt: updatedAt,
+      );
+
       setState(() {
         _analysis = result;
+        _analysisUpdatedAt = updatedAt;
         _isAnalysisLoading = false;
       });
     } catch (e) {
@@ -162,7 +201,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
               value,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: color ?? Colors.white,
+                color: color ?? Theme.of(context).colorScheme.onSurface,
               ),
             ),
           ],
@@ -171,47 +210,62 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
-  // [2026-05-24 00:10 KST]
-  // 분석중 Skeleton 카드 (Analysis loading skeleton card)
-
+  // [2026-06-12 22:50 KST]
+  // 분석중 Skeleton의 무한 width 오류 방지 및 라이트/다크 모드 색상 적용
   Widget _buildAnalysisSkeleton() {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E293B),
-      highlightColor: const Color(0xFF334155),
-      child: Column(
-        children: [
-          Container(
-            height: 18,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
+    final Color baseColor = isDark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFE5E7EB);
+
+    final Color highlightColor = isDark
+        ? const Color(0xFF334155)
+        : const Color(0xFFF8FAFC);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double safeWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.of(context).size.width - 72;
+
+        return Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 18,
+                width: safeWidth,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 18,
+                width: safeWidth * 0.88,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 18,
+                width: safeWidth * 0.55,
+                decoration: BoxDecoration(
+                  color: baseColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 12),
-
-          Container(
-            height: 18,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          Container(
-            height: 18,
-            width: 180,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -220,16 +274,23 @@ class _StockDetailPageState extends State<StockDetailPage> {
   Widget _buildHudCard({
     required Widget child,
   }) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.15),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.24),
+            color: Colors.black.withValues(
+              alpha: isDark ? 0.24 : 0.08,
+            ),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -262,8 +323,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white54,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontSize: 12,
             ),
           ),
@@ -290,13 +351,22 @@ class _StockDetailPageState extends State<StockDetailPage> {
     required String value,
     Color? color,
   }) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.05)
+              : Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
       ),
       child: Column(
@@ -315,7 +385,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: color ?? Colors.white,
+              color: color ?? Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -377,7 +447,9 @@ class _StockDetailPageState extends State<StockDetailPage> {
                   horizontalInterval: 20,
                   getDrawingHorizontalLine: (_) {
                     return FlLine(
-                      color: Colors.white12,
+                      color: Theme.of(context)
+                          .dividerColor
+                          .withValues(alpha: 0.20),
                       strokeWidth: 1,
                     );
                   },
@@ -392,8 +464,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: const TextStyle(
-                            color: Colors.white54,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 10,
                           ),
                         );
@@ -442,19 +514,16 @@ class _StockDetailPageState extends State<StockDetailPage> {
     );
   }
 
-  // [2026-06-08 12:35 KST]
-  // 분석 설명 영역으로 정확히 이동 (Scroll exactly to analysis section)
-  void _scrollToAiAnalysis() {
-    final context = _analysisSectionKey.currentContext;
-
-    if (context == null) {
-      return;
-    }
-
-    Scrollable.ensureVisible(
+  // [2026-06-11 16:20 KST]
+  // SignalFlow AI 분석 보기 클릭 시 페이지 내부 스크롤이 아니라 기존 분석 상세 화면으로 이동 (Navigate to the existing analysis result page)
+  void _openAiAnalysisPage() {
+    Navigator.pushNamed(
       context,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeInOut,
+      '/analysis-result',
+      arguments: {
+        'ticker': widget.ticker,
+        'stock_name': widget.stockName,
+      },
     );
   }
 
@@ -480,16 +549,34 @@ class _StockDetailPageState extends State<StockDetailPage> {
     return const Color(0xFF64748B);
   }
 
+  // [2026-06-12 23:59 KST]
+  // 최근 AI 분석 시각 표시
+  String _analysisTimeText(DateTime time) {
+    final diff = DateTime.now().difference(time);
+
+    if (diff.inMinutes < 1) {
+      return '방금 전';
+    }
+
+    if (diff.inHours < 1) {
+      return '${diff.inMinutes}분 전';
+    }
+
+    return '${diff.inHours}시간 전';
+  }
+
   // [2026-06-08 12:20 KST]
   // 스크롤 컨트롤러 해제 (Dispose scroll controller)
   @override
   void dispose() {
-    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
+
     final String displayName =
     widget.stockName.isEmpty ? widget.ticker : widget.stockName;
 
@@ -511,7 +598,6 @@ class _StockDetailPageState extends State<StockDetailPage> {
           : RefreshIndicator(
         onRefresh: _loadAnalysis,
         child: ListView(
-          controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
             // [2026-05-13 11:10 KST]
@@ -528,7 +614,10 @@ class _StockDetailPageState extends State<StockDetailPage> {
                           ? 'ANALYZING'
                           : (_analysis?.finalStatus ?? widget.finalStatus),
                     ).withValues(alpha: 0.18),
-                    const Color(0xFF0F172A),
+
+                    isDark
+                        ? const Color(0xFF0F172A)
+                        : Theme.of(context).cardColor,
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -563,10 +652,10 @@ class _StockDetailPageState extends State<StockDetailPage> {
                           children: [
                             Text(
                               displayName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -603,7 +692,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
                         ),
                         child: Text(
                           _isAnalysisLoading
-                              ? 'ANALYZING'
+                              ? '분석중'
                               : (_analysis?.finalStatus ?? widget.finalStatus),
                           style: TextStyle(
                             color: _statusColor(
@@ -621,14 +710,23 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
                   const SizedBox(height: 24),
 
-                  // [2026-06-08 12:20 KST]
-                  // SignalFlow AI 분석 바로가기 버튼 (SignalFlow AI analysis shortcut button)
-
                   FilledButton.icon(
-                    onPressed: _scrollToAiAnalysis,
+                    onPressed: _openAiAnalysisPage,
                     icon: const Icon(Icons.smart_toy),
                     label: const Text('SignalFlow AI 분석 보기'),
                   ),
+
+                  if (_analysisUpdatedAt != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      '최근 분석: ${_analysisTimeText(_analysisUpdatedAt!)}',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 24),
 
@@ -638,10 +736,10 @@ class _StockDetailPageState extends State<StockDetailPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Signal Strength',
                               style: TextStyle(
-                                color: Colors.white54,
+                                color: Theme.of(context).textTheme.bodyMedium?.color,
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -653,8 +751,9 @@ class _StockDetailPageState extends State<StockDetailPage> {
                                 value:
                                 ((_analysis?.finalScore ?? 0).clamp(0, 100)) / 100,
                                 minHeight: 10,
-                                backgroundColor:
-                                Colors.white.withValues(alpha: 0.08),
+                                backgroundColor: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.08),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   _statusColor(
                                     _analysis?.finalStatus ?? widget.finalStatus,
@@ -671,17 +770,17 @@ class _StockDetailPageState extends State<StockDetailPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text(
+                          Text(
                             '점수',
                             style: TextStyle(
-                              color: Colors.white54,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
                               fontSize: 11,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _isAnalysisLoading
-                                ? '...'
+                                ? '0'
                                 : '${_analysis?.finalScore ?? widget.finalScore}',
                             style: TextStyle(
                               color: _statusColor(
@@ -724,8 +823,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
                           Expanded(
                             child: Text(
                               _analysis?.etfReason ?? '',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontSize: 13,
                               ),
                             ),
@@ -800,44 +899,48 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
             const SizedBox(height: 24),
 
-            // [2026-05-13 11:35 KST]
-            // 분석 설명 카드 HUD 스타일 적용 (Apply HUD style to analysis description card)
-        Container(
-          key: _analysisSectionKey,
-          child: _buildHudCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '분석 설명',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (_isAnalysisLoading) ...[
-                    _buildAnalysisSkeleton(),
-                    const SizedBox(height: 16),
-                  ],
-                  Text(
-                    _analysis?.message ?? '분석 메시지가 없습니다.',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      height: 1.45,
-                    ),
-                  ),
-              ],
+      // [Modified by ChatGPT | 2026-06-12 23:10 KST]
+// 분석 설명 카드 레이아웃 괄호 정리
+      _buildHudCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '분석 설명',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+            if (_isAnalysisLoading) ...[
+              _buildAnalysisSkeleton(),
+              const SizedBox(height: 16),
+              Text(
+                'AI가 종목 데이터, 가격 흐름, ETF 연동 정보를 분석중입니다...',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else
+              Text(
+                _analysis?.message ?? '분석 메시지가 없습니다.',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  height: 1.45,
+                ),
+              ),
+          ],
         ),
+      ),
 
             // [2026-05-12 15:00 KST]
             // 분석 근거 목록 표시 추가 (Add analysis reasons list display)
             const SizedBox(height: 24),
 
-            // [2026-05-13 14:25 KST]
-            // 분석 이유 카드 HUD 스타일 적용 (Apply HUD style to analysis reasons card)
+            // [2026-06-12 23:58 KST]
+            // 분석 이유 영역도 AI 분석중 Skeleton 표시
             _buildHudCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -849,57 +952,64 @@ class _StockDetailPageState extends State<StockDetailPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   const SizedBox(height: 14),
-
-                  if ((_analysis?.reasons ?? []).isEmpty)
+                  if (_isAnalysisLoading) ...[
+                    _buildAnalysisSkeleton(),
+                    const SizedBox(height: 16),
+                    Text(
+                      '매수/관찰/위험 판단 근거를 계산중입니다...',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ] else if ((_analysis?.reasons ?? []).isEmpty)
                     const Text(
                       '분석 근거가 없습니다.',
                       style: TextStyle(
                         color: Color(0xFF94A3B8),
                       ),
-                    ),
-
-                  ...(_analysis?.reasons ?? []).map(
-                        (reason) => Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: const Color(0xFF22C55E)
-                              .withValues(alpha: 0.12),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Padding(
-                            padding: EdgeInsets.only(top: 2),
-                            child: Icon(
-                              Icons.check_circle,
-                              size: 18,
-                              color: Color(0xFF22C55E),
-                            ),
+                    )
+                  else
+                    ...(_analysis?.reasons ?? []).map(
+                          (reason) => Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.03)
+                              : Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFF22C55E).withValues(alpha: 0.12),
                           ),
-
-                          const SizedBox(width: 10),
-
-                          Expanded(
-                            child: Text(
-                              reason,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                                height: 1.45,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(
+                                Icons.check_circle,
+                                size: 18,
+                                color: Color(0xFF22C55E),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                reason,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -925,9 +1035,20 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
                   const SizedBox(height: 16),
 
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
+                  if (_isAnalysisLoading) ...[
+                    _buildAnalysisSkeleton(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'ETF 상관관계와 동반 상승 확률을 계산중입니다...',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
                       color: const Color(0xFF3B82F6)
                           .withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
@@ -981,10 +1102,16 @@ class _StockDetailPageState extends State<StockDetailPage> {
                         margin: const EdgeInsets.only(bottom: 10),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.03),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.03)
+                              : Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.04),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : Theme.of(context)
+                                .dividerColor
+                                .withValues(alpha: 0.20),
                           ),
                         ),
                         child: Row(
@@ -1000,8 +1127,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
                             Expanded(
                               child: Text(
                                 '${etf.etfName} (${etf.etfCode})',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1063,7 +1190,9 @@ class _StockDetailPageState extends State<StockDetailPage> {
                       margin: const EdgeInsets.only(bottom: 14),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.03)
+                            : Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _statusColor(item.currentStatus)
@@ -1096,7 +1225,9 @@ class _StockDetailPageState extends State<StockDetailPage> {
                               Container(
                                 width: 2,
                                 height: 42,
-                                color: Colors.white12,
+                                color: Theme.of(context)
+                                    .dividerColor
+                                    .withValues(alpha: 0.25),
                               ),
                             ],
                           ),
@@ -1120,8 +1251,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
                                 Text(
                                   'Signal Score ${item.finalScore}',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
+                                  style: TextStyle(
+                                    color: Theme.of(context).textTheme.bodyMedium?.color,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -1167,80 +1298,79 @@ class _StockDetailPageState extends State<StockDetailPage> {
 
                   const SizedBox(height: 18),
 
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatBox(
-                          title: 'ATTACK',
-                          value:
-                          '${_attackStatistics?.attackCount ?? 0}',
-                          color: const Color(0xFF22C55E),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: _buildStatBox(
-                          title: '성공',
-                          value:
-                          '${_attackStatistics?.successCount ?? 0}',
-                          color: const Color(0xFF3B82F6),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatBox(
-                          title: '성공률',
-                          value:
-                          '${(_attackStatistics?.successRate ?? 0).toStringAsFixed(1)}%',
-                          color: const Color(0xFFF59E0B),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: _buildStatBox(
-                          title: '평균수익',
-                          value:
-                          '${(_attackStatistics?.avgReturn ?? 0).toStringAsFixed(2)}%',
-                          color:
-                          (_attackStatistics?.avgReturn ?? 0) >= 0
-                              ? const Color(0xFF22C55E)
-                              : const Color(0xFFEF4444),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Text(
-                      '기준: ATTACK 발생 후 5거래일 내 +3% 이상 상승',
+                  if (_isAnalysisLoading) ...[
+                    _buildAnalysisSkeleton(),
+                    const SizedBox(height: 16),
+                    Text(
+                      '과거 ATTACK 성공률과 평균 수익률을 계산중입니다...',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF94A3B8),
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatBox(
+                            title: 'ATTACK',
+                            value: '${_attackStatistics?.attackCount ?? 0}',
+                            color: const Color(0xFF22C55E),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatBox(
+                            title: '성공',
+                            value: '${_attackStatistics?.successCount ?? 0}',
+                            color: const Color(0xFF3B82F6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatBox(
+                            title: '성공률',
+                            value: '${(_attackStatistics?.successRate ?? 0).toStringAsFixed(1)}%',
+                            color: const Color(0xFFF59E0B),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatBox(
+                            title: '평균수익',
+                            value: '${(_attackStatistics?.avgReturn ?? 0).toStringAsFixed(2)}%',
+                            color: (_attackStatistics?.avgReturn ?? 0) >= 0
+                                ? const Color(0xFF22C55E)
+                                : const Color(0xFFEF4444),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.03)
+                            : Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text(
+                        '기준: ATTACK 발생 후 5거래일 내 +3% 이상 상승',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
-
-
           ],
         ),
       ),

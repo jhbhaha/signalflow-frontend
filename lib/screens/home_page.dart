@@ -54,6 +54,8 @@ class _HomePageState extends State<HomePage> {
     required String label,
   }) {
     final bool isActive = _currentIndex == index;
+    final bool isDark =
+        Theme.of(context).brightness == Brightness.dark;
     final Color activeColor = const Color(0xFF3B82F6);
 
     return InkWell(
@@ -89,15 +91,17 @@ class _HomePageState extends State<HomePage> {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              color: isActive ? activeColor : Colors.white60,
+              color: isActive
+                  ? activeColor
+                  : Theme.of(context).textTheme.bodyMedium?.color,
               size: 22,
             ),
             if (isActive) ...[
               const SizedBox(width: 6),
               Text(
                 label,
-                style: const TextStyle(
-                  color: Color(0xFFBFDBFE),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFFBFDBFE) : activeColor,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -178,14 +182,18 @@ class _HomePageState extends State<HomePage> {
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF111827),
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
+                color: Colors.black.withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.10,
+                ),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),

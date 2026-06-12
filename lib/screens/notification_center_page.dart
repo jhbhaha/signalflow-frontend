@@ -37,7 +37,7 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
     await _refresh();
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(BuildContext context, String status) {
     if (status.startsWith('ATTACK')) {
       return Colors.redAccent;
     }
@@ -50,10 +50,23 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
       return Colors.yellow;
     }
 
-    return Colors.white70;
+    return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
   }
 
-  void _openStockDetail(NotificationEvent event) {
+  // [2026-06-11 16:45 KST]
+  // 알림 선택 시 먼저 읽음 처리 후 종목 상세 화면으로 이동 (Mark notification as read before opening stock detail page)
+  Future<void> _openStockDetail(NotificationEvent event) async {
+    try {
+      if (!event.read) {
+        await _apiService.markNotificationsAsRead();
+        await _refresh();
+      }
+    } catch (error) {
+      debugPrint('notification read update failed: $error');
+    }
+
+    if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -118,14 +131,16 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    onTap: () => _openStockDetail(event),
+                    onTap: () async {
+                      await _openStockDetail(event);
+                    },
                     leading: Icon(
                       event.read
                           ? Icons.notifications_none
                           : Icons.notifications_active,
                       color: event.read
-                          ? Colors.white38
-                          : _statusColor(event.currentStatus),
+                          ? Theme.of(context).disabledColor
+                          : _statusColor(context, event.currentStatus),
                     ),
                     title: Text(
                       '${event.stockName} (${event.ticker})',
@@ -143,16 +158,16 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                           Text(
                             '${event.prevStatus} → ${event.currentStatus} / ${event.finalScore}점',
                             style: TextStyle(
-                              color: _statusColor(event.currentStatus),
+                              color: _statusColor(context, event.currentStatus),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             event.createdAt,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF94A3B8),
+                              color: Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         ],

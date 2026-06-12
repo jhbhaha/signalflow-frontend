@@ -1,6 +1,5 @@
 // File: main.dart (앱 시작 파일)
-// Last Modified: 2026-05-12 12:25 KST (작성자: ChatGPT)
-// Insert Location: G:\stockmarket_frontend\lib\main.dart 전체 교체
+// Last Modified: 2026-05-12 12:25 KST
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -25,9 +24,8 @@ import 'screens/analysis_result_page.dart';
 // (Add global Navigator Key for push click navigation)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-// [Modified by ChatGPT | 2026-05-12 13:30 KST]
-// Push 클릭 시 종목 상세 화면으로 자동 이동
-// (Navigate to stock detail page when push notification is clicked)
+// [2026-05-12 13:30 KST]
+// Push 클릭 시 종목 상세 화면으로 자동 이동 (Navigate to stock detail page when push notification is clicked)
 void handleFcmMessageClick(RemoteMessage message) {
   final Map<String, dynamic> data = message.data;
 
@@ -150,7 +148,54 @@ class StockAnalysisApp extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Stock Analysis',
+      // [2026-06-10 00:00 KST]
+      // 휴대폰 시스템 설정에 따라 라이트/다크 테마 자동 적용 (Apply light/dark theme automatically based on phone system setting)
+      themeMode: ThemeMode.system,
+
       theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF2563EB),
+          secondary: Color(0xFF16A34A),
+          surface: Colors.white,
+          error: Color(0xFFDC2626),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          foregroundColor: Color(0xFF0F172A),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xFF2563EB).withValues(alpha: 0.15),
+          labelTextStyle: WidgetStateProperty.all(
+            const TextStyle(
+              color: Color(0xFF334155),
+              fontSize: 12,
+            ),
+          ),
+        ),
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Color(0xFF0F172A)),
+          bodyMedium: TextStyle(color: Color(0xFF475569)),
+          titleLarge: TextStyle(
+            color: Color(0xFF0F172A),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+
+      darkTheme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0F172A),

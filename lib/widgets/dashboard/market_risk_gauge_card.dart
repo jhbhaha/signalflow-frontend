@@ -57,7 +57,9 @@ class MarketRiskGaugeCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: riskScore / 100,
                     minHeight: 14,
-                    backgroundColor: Colors.white.withValues(alpha: 0.08),
+                    backgroundColor: Theme.of(context)
+                        .dividerColor
+                        .withValues(alpha: 0.20),
                     color: riskColor,
                   ),
                 ),
@@ -89,25 +91,38 @@ class MarketRiskGaugeCard extends StatelessWidget {
   Widget _buildSignalFlowCard({
     required Widget child,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+    return Builder(
+      builder: (context) {
+        final bool isDark =
+            Theme.of(context).brightness == Brightness.dark;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Theme.of(context)
+                  .dividerColor
+                  .withValues(alpha: 0.20),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: isDark ? 0.25 : 0.08,
+                ),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
-      ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

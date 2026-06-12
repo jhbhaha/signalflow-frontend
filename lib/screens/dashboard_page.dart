@@ -38,6 +38,9 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage>
     with SingleTickerProviderStateMixin {
+  // [2026-06-12 15:40 KST]
+  // 대시보드 AI 분석 연출용
+  bool _showAnalysisAnimation = true;
   // 대시보드 자동 새로고침 타이머
   // (Dashboard auto refresh timer)
   Timer? _autoRefreshTimer;
@@ -108,6 +111,18 @@ class _DashboardPageState extends State<DashboardPage>
 
     _loadSummary();
     _loadSavedTickers();
+    // [2026-06-12 22:30 KST]
+    // 최초 진입 AI 분석 연출 종료
+    Future.delayed(
+      const Duration(seconds: 2),
+          () {
+        if (!mounted) return;
+
+        setState(() {
+          _showAnalysisAnimation = false;
+        });
+      },
+    );
     // 60초마다 Dashboard 자동 새로고침
     // (Auto refresh dashboard every 60 seconds)
     _autoRefreshTimer = Timer.periodic(
@@ -578,7 +593,9 @@ class _DashboardPageState extends State<DashboardPage>
           children: [
             _buildLiveUpdateBar(),
             const SizedBox(height: 12),
-            MarketCard(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 180)
+                : MarketCard(
               summary: summary,
               marketOverview: _marketOverview,
               statusColor: _statusColor,
@@ -597,15 +614,23 @@ class _DashboardPageState extends State<DashboardPage>
             // 시장 위험도 Gauge 카드 추가
             // (Add market risk gauge card)
             const SizedBox(height: 12),
-            MarketRiskGaugeCard(
+            // [2026-06-12 23:55 KST]
+            // 대시보드 분석 연출 중에는 시장 위험도 카드도 Skeleton으로 표시
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 160)
+                : MarketRiskGaugeCard(
               summary: summary,
             ),
             const SizedBox(height: 12),
-            SignalSummaryCard(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 180)
+                : SignalSummaryCard(
               summary: summary,
             ),
             const SizedBox(height: 12),
-            TopSignalsCard(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 180)
+                : TopSignalsCard(
               summary: summary,
               recentAttackTicker: _recentAttackTicker,
               signalHistoryCache: _signalHistoryCache,
@@ -615,17 +640,23 @@ class _DashboardPageState extends State<DashboardPage>
             // 실시간 ATTACK TOP5 카드 추가
             // (Add realtime ATTACK TOP5 card)
             const SizedBox(height: 12),
-            AttackTop5Card(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 180)
+                : AttackTop5Card(
               summary: summary,
               recentAttackTicker: _recentAttackTicker,
               onAttackTap: _openAnalysisWithCache,
             ),
             const SizedBox(height: 12),
-            EtfSectorFlowCard(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 180)
+                : EtfSectorFlowCard(
               summary: summary,
             ),
             const SizedBox(height: 12),
-            RecommendationCard(
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 240)
+                : RecommendationCard(
               recommendations: _recommendations,
               savedTickers: _savedTickers,
               onItemTap: _openAnalysisWithCache,
@@ -644,7 +675,7 @@ class _DashboardPageState extends State<DashboardPage>
                       .withValues(alpha: 0.25),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
@@ -658,7 +689,7 @@ class _DashboardPageState extends State<DashboardPage>
                       '본 앱의 분석 결과는 투자 참고용이며, 투자 손실에 대한 책임은 사용자 본인에게 있습니다.',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white70,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         height: 1.4,
                       ),
                     ),
@@ -685,12 +716,18 @@ class _DashboardPageState extends State<DashboardPage>
     required double height,
   }) {
     return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E293B),
-      highlightColor: const Color(0xFF334155),
+      baseColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1E293B)
+          : const Color(0xFFE5E7EB),
+      highlightColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF334155)
+          : const Color(0xFFF8FAFC),
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E293B)
+              : const Color(0xFFE5E7EB),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.05),
@@ -701,6 +738,17 @@ class _DashboardPageState extends State<DashboardPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // [2026-06-12 23:55 KST]
+              // 분석중 문구 표시
+              Text(
+                'SignalFlow AI 분석중...',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 12),
               Container(
                 width: 120,
                 height: 18,
@@ -741,10 +789,12 @@ class _DashboardPageState extends State<DashboardPage>
         vertical: 9,
       ),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
+          color: Theme.of(context)
+              .dividerColor
+              .withValues(alpha: 0.20),
         ),
       ),
       child: Row(
@@ -795,8 +845,8 @@ class _DashboardPageState extends State<DashboardPage>
           const SizedBox(width: 10),
           Text(
             'Last Update $timeText',
-            style: const TextStyle(
-              color: Colors.white54,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodySmall?.color,
               fontSize: 12,
             ),
           ),
