@@ -5,12 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 // 분석 결과 화면에서 관심종목 저장 API 사용
 import '../services/api_service.dart';
+// [2026-06-13 15:45 KST]
+// 종합평가 재무점수 조회 서비스
+import '../services/company_analysis_service.dart';
 // [2026-05-27 10:55 KST]
 // 상태 설명 페이지 import (Import status help page)
 import 'status_help_page.dart';
 // [2026-06-02 13:40 KST]
 // 종목 상태 이력 화면
 import 'signal_detail_history_page.dart';
+// [2026-06-13 01:35 KST]
+// 재무분석 화면 추가
+import 'company_analysis_page.dart';
 // [2026-05-28 20:15 KST]
 // 분석 가격 차트 카드 추가 (Add analysis price chart card)
 import '../widgets/analysis_price_chart_card.dart';
@@ -49,6 +55,12 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
   List<PriceChartPoint> _chartItems = [];
   // 관심종목 저장용 API 서비스
   final ApiService _apiService = ApiService();
+  // [2026-06-13 15:45 KST]
+  // SignalFlow 종합평가용 재무분석 서비스
+  final CompanyAnalysisService _companyAnalysisService = CompanyAnalysisService();
+
+  int? _financialScore;
+  String? _financialGrade;
   // KST] 이미 관심종목에 저장된 종목인지 확인하기 위한 상태값 추가
   bool _isSavedToWatchlist = false;
 
@@ -72,6 +84,14 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
       final chartItems =
       await _apiService.fetchPriceChart(
         ticker: widget.ticker,
+      );
+
+      // [2026-06-13 15:45 KST]
+      // SignalFlow 종합평가용 재무점수 조회
+      final companyAnalysis =
+      await _companyAnalysisService.fetchCompanyAnalysis(
+        stockCode: widget.ticker,
+        year: (DateTime.now().year - 1).toString(),
       );
 
       if (!mounted) return;
@@ -144,6 +164,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
           'ai_score_history': analysis.aiScoreHistory,
         };
 
+        _financialScore = companyAnalysis.analysis.financialScore;
+        _financialGrade = companyAnalysis.analysis.financialGrade;
         _chartItems = chartItems;
         _isLoading = false;
       });
@@ -189,7 +211,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     }
   }
 
-  // [Added by ChatGPT | 2026-04-26 00:45 KST] 현재 분석 종목을 관심종목에 저장
+  // [2026-04-26 00:45 KST] 현재 분석 종목을 관심종목에 저장
   Future<void> _saveToWatchlist() async {
     final result = _result;
 
@@ -228,6 +250,23 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     }
   }
 
+  // [2026-06-13 01:35 KST]
+  // 재무분석 화면 이동
+  void _openCompanyAnalysisPage({
+    required String ticker,
+    required String stockName,
+  }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompanyAnalysisPage(
+          stockCode: ticker,
+          stockName: stockName,
+        ),
+      ),
+    );
+  }
+
   // 한국 주식 시장 기준 상태 색상 적용
   // 상승=빨강 / 위험=파랑
   Color _statusColor(String status) {
@@ -246,7 +285,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     return const Color(0xFF64748B);
   }
 
-  // [Added by ChatGPT | 2026-06-02 14:30 KST]
+  // [2026-06-02 14:30 KST]
 // 상태 표시명 변환
 // (Convert status code to display label)
   String _statusDisplayName(String status) {
@@ -664,10 +703,66 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
     final Color finalStatusColor = _statusColor(finalStatus);
 
+    // [2026-06-13 15:30 KST]
+    // SignalFlow 종합 점수 계산
+    int technicalScore = 50;
+
+    switch (finalStatus) {
+      case 'ATTACK_STRONG':
+        technicalScore = 95;
+        break;
+
+      case 'ATTACK_NORMAL':
+        technicalScore = 85;
+        break;
+
+      case 'WATCH_STRONG':
+        technicalScore = 70;
+        break;
+
+      case 'WATCH':
+        technicalScore = 60;
+        break;
+
+      case 'RISK':
+        technicalScore = 25;
+        break;
+    }
+
+    // [2026-06-13 15:45 KST]
+    // 재무분석 API에서 받은 실제 재무점수 반영
+    final int financialScore = _financialScore ?? 50;
+
+    final int overallScore = (
+        technicalScore * 0.4 +
+            aiScoreValue * 0.3 +
+            financialScore * 0.3
+    ).round();
+
+    String overallGrade;
+    String overallLabel;
+
+    if (overallScore >= 85) {
+      overallGrade = '★★★★★';
+      overallLabel = '매우 긍정적';
+    } else if (overallScore >= 70) {
+      overallGrade = '★★★★';
+      overallLabel = '긍정적';
+    } else if (overallScore >= 55) {
+      overallGrade = '★★★';
+      overallLabel = '중립';
+    } else if (overallScore >= 40) {
+      overallGrade = '★★';
+      overallLabel = '주의';
+    } else {
+      overallGrade = '★';
+      overallLabel = '위험';
+    }
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // [Added by ChatGPT | 2026-05-24 03:55 KST]
+        // [2026-05-24 03:55 KST]
 // 분석 결과 Hero 상태 카드
 // (Analysis result hero status card)
 
@@ -935,6 +1030,78 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
         const SizedBox(height: 12),
 
+        // [2026-06-13 15:30 KST]
+        // SignalFlow 종합 평가 카드
+
+        _buildSectionCard(
+          title: '📊 SignalFlow 종합 평가',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    Text(
+                      overallGrade,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      overallLabel,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Text(
+                      '$overallScore 점',
+                      style: TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                        color: finalStatusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              ListTile(
+                dense: true,
+                title: const Text('기술 점수'),
+                trailing: Text('$technicalScore'),
+              ),
+
+              ListTile(
+                dense: true,
+                title: const Text('AI 점수'),
+                trailing: Text('$aiScoreValue'),
+              ),
+
+              ListTile(
+                dense: true,
+                title: const Text('재무 점수'),
+                trailing: Text(
+                  _financialGrade == null
+                      ? '$financialScore'
+                      : '$financialScore ($_financialGrade)',
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
         _buildSectionCard(
           title: '기본 정보',
           child: Column(
@@ -961,6 +1128,24 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                           stockName: stockName,
                         ),
                       ),
+                    );
+                  },
+                ),
+              ),
+
+              // [2026-06-13 01:35 KST]
+              // 기본 정보 카드 안에 기업 재무분석 버튼 추가
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.account_balance),
+                  label: const Text('기업 재무분석 보기'),
+                  onPressed: () {
+                    _openCompanyAnalysisPage(
+                      ticker: ticker,
+                      stockName: stockName,
                     );
                   },
                 ),
@@ -1111,7 +1296,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
         const SizedBox(height: 12),
 
-// [Added by ChatGPT | 2026-06-03 14:40 KST]
+// [2026-06-03 14:40 KST]
 // AI 분석 카드 (AI Analysis Card)
         _buildSectionCard(
           title: '🤖 AI 분석',
@@ -1143,8 +1328,8 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
                     const SizedBox(height: 14),
 
-// [Added by ChatGPT | 2026-06-08 20:00 KST]
-// AI 상승 가능성 게이지 (AI up probability gauge)
+                    // [2026-06-08 20:00 KST]
+                    // AI 상승 가능성 게이지 (AI up probability gauge)
                     Text(
                       '상승 가능성: $aiUpProbability%',
                       style: TextStyle(
