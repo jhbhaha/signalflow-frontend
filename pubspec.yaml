@@ -1,7 +1,7 @@
 name: flutter_stock_frontend
 description: Flutter frontend for stock analysis API
 publish_to: 'none'
-version: 1.0.20+21
+version: 1.0.24+25
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -43,12 +43,16 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/icon/app_icon.png"
 
 flutter_native_splash:
-  color: "#061538"
+  color: "#F8FAFC"
+  color_dark: "#061538"
   image: assets/splash/splash_logo.png
+  image_dark: assets/splash/splash_logo.png
 
   android_12:
-    color: "#061538"
+    color: "#F8FAFC"
+    color_dark: "#061538"
     image: assets/splash/splash_logo.png
+    image_dark: assets/splash/splash_logo.png
 
   android: true
   ios: false

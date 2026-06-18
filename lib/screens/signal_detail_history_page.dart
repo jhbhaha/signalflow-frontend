@@ -134,7 +134,7 @@ class _SignalDetailHistoryPageState
         gradient: LinearGradient(
           colors: [
             color.withValues(alpha: 0.28),
-            const Color(0xFF1E293B),
+            Theme.of(context).cardColor,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -202,8 +202,8 @@ class _SignalDetailHistoryPageState
 
           Text(
             flowText,
-            style: const TextStyle(
-              color: Colors.white70,
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
               fontSize: 14,
             ),
           ),
@@ -241,7 +241,7 @@ class _SignalDetailHistoryPageState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.06),
@@ -255,7 +255,7 @@ class _SignalDetailHistoryPageState
             MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                '점수 흐름',
+                '최근 점수 흐름',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -295,30 +295,32 @@ class _SignalDetailHistoryPageState
               LineChartData(
                 minX: 0,
                 maxX: (spots.length - 1).toDouble(),
+                // [2026-06-15 15:30 KST]
+                // 점수 범위에 따라 Y축 자동 조정
                 minY: 0,
-                maxY: 100,
+                maxY: 10,
 
                 // 상태 구간 배경 가이드 영역
                 // (Signal status range background guides)
                 rangeAnnotations: RangeAnnotations(
                   horizontalRangeAnnotations: [
                     HorizontalRangeAnnotation(
-                      y1: 70,
-                      y2: 100,
+                      y1: 4,
+                      y2: 10,
                       color: Color(0xFFEF4444)
                           .withValues(alpha: 0.05),
                     ),
 
                     HorizontalRangeAnnotation(
-                      y1: 40,
-                      y2: 70,
+                      y1: 3,
+                      y2: 4,
                       color: Color(0xFFF59E0B)
                           .withValues(alpha: 0.04),
                     ),
 
                     HorizontalRangeAnnotation(
                       y1: 0,
-                      y2: 40,
+                      y2: 3,
                       color: Color(0xFF3B82F6)
                           .withValues(alpha: 0.04),
                     ),
@@ -328,10 +330,12 @@ class _SignalDetailHistoryPageState
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 20,
+                  horizontalInterval: 2,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(
-                      color: Colors.white.withValues(alpha: 0.05),
+                      color: Theme.of(context)
+                          .dividerColor
+                          .withValues(alpha: 0.15),
                       strokeWidth: 1,
                     );
                   },
@@ -342,22 +346,65 @@ class _SignalDetailHistoryPageState
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 32,
-                      interval: 20,
+                      interval: 2,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 10,
-                            color: Colors.white54,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.color
+                                ?.withValues(alpha: 0.7),
                           ),
                         );
                       },
                     ),
                   ),
 
-                  bottomTitles: const AxisTitles(
+                  // [2026-06-15 16:00 KST]
+                  // X축 날짜 표시
+                  bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
-                      showTitles: false,
+                      showTitles: true,
+                      reservedSize: 32,
+
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+
+                        if (index < 0 || index >= recent.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        // 너무 많으면 3개 간격으로만 표시
+                        if (recent.length > 8 && index % 3 != 0) {
+                          return const SizedBox.shrink();
+                        }
+
+                        final timestamp =
+                        DateTime.tryParse(
+                          recent[index].timestamp,
+                        );
+
+                        if (timestamp == null) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '${timestamp.month}/${timestamp.day}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.color,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
 
@@ -428,7 +475,8 @@ class _SignalDetailHistoryPageState
                         .map((e) => e.key)
                         .toList(),
                     spots: spots,
-                    isCurved: true,
+                    // [2026-06-15 16:00 KST]
+                    isCurved: false,
                     color: chartColor,
                     barWidth: 3,
                     dotData: FlDotData(
@@ -462,7 +510,7 @@ class _SignalDetailHistoryPageState
                           strokeColor:
                           isAttackEntry
                               ? const Color(0xFFEF4444)
-                              : Colors.white,
+                              : Theme.of(context).colorScheme.onSurface,
                         );
                       },
                     ),
@@ -491,7 +539,7 @@ class _SignalDetailHistoryPageState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.06),
@@ -554,8 +602,11 @@ class _SignalDetailHistoryPageState
 
                           Text(
                             '${item.finalScore}점',
-                            style: const TextStyle(
-                              color: Colors.white70,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.color,
                               fontSize: 12,
                             ),
                           ),
@@ -565,9 +616,13 @@ class _SignalDetailHistoryPageState
 
                     Text(
                       _formatTimestamp(item.timestamp),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: Colors.white38,
+                        color: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.color
+                            ?.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -586,7 +641,8 @@ class _SignalDetailHistoryPageState
       appBar: AppBar(
         title: Text(widget.stockName),
       ),
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor:
+      Theme.of(context).scaffoldBackgroundColor,
 
       body: _isLoading
           ? const Center(

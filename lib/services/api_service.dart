@@ -31,8 +31,8 @@ class ApiService {
   static const int _maxRetryCount = 2;
   // 운영 서버 주소 기본값 지정
   // (Set production API server as default)
-  static const String _devBaseUrl =
-      'https://stockmarket-backend-nwkm.onrender.com';
+   static const String _devBaseUrl =
+       'https://stockmarket-backend-nwkm.onrender.com';
 
   static const String _prodBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
@@ -95,7 +95,7 @@ class ApiService {
     return AnalysisResponse.fromJson(decoded as Map<String, dynamic>);
   }
 
-  // [Added by ChatGPT | 2026-04-25 22:45 KST] 추천 종목 TOP API 호출
+  // [2026-04-25 22:45 KST] 추천 종목 TOP API 호출
   Future<List<RecommendationItem>> fetchTopRecommendations() async {
     // [Modified by ChatGPT | 2026-05-10 19:25 KST]
 // 추천 종목 캐시 조회 (Fetch cached top recommendations)
@@ -200,7 +200,7 @@ class ApiService {
     return jsonDecode(utf8.decode(response.bodyBytes));
   }
 
-  // [Added by ChatGPT | 2026-04-04 22:20 KST]
+  // [2026-04-04 22:20 KST]
   // 공통 DELETE 요청 처리
   Future<void> _delete(String path) async {
     final uri = Uri.parse('$baseUrl$path');
@@ -213,7 +213,7 @@ class ApiService {
     }
   }
 
-  // [Added by ChatGPT | 2026-04-04 22:20 KST]
+  // [2026-04-04 22:20 KST]
   // 응답이 List 또는 {items: [...]} 형태 모두 처리
   List<dynamic> _extractList(dynamic decoded, {String key = 'items'}) {
     if (decoded is List<dynamic>) {
@@ -230,7 +230,7 @@ class ApiService {
     return <dynamic>[];
   }
 
-  // [Added by ChatGPT | 2026-04-04 22:20 KST]
+  // [2026-04-04 22:20 KST]
   // 종목 검색 자동완성 API 호출
   static Future<List<StockSearchItem>> searchStocks(String keyword) async {
     final trimmed = keyword.trim();
@@ -255,7 +255,7 @@ class ApiService {
         .toList();
   }
 
-  // [Added by ChatGPT | 2026-04-04 22:20 KST]
+  // [2026-04-04 22:20 KST]
   // 관심종목 목록 조회
   Future<List<WatchItem>> fetchWatchlistItems() async {
     final dynamic decoded = await _getJson('/analysis/watchlist/items');
@@ -283,8 +283,8 @@ class ApiService {
         .toList();
   }
 
-  // [Added by ChatGPT | 2026-05-09 10:30 KST]
-// 관심종목 전체 분석 수동 실행 (Run watchlist analysis manually)
+  // [2026-05-09 10:30 KST]
+  // 관심종목 전체 분석 수동 실행 (Run watchlist analysis manually)
   Future<void> runWatchlistAnalysis() async {
     final Uri uri = Uri.parse(
       '$baseUrl/analysis/watchlist/run',
@@ -332,7 +332,7 @@ class ApiService {
     await _delete('/analysis/watchlist/items/$ticker');
   }
 
-  // [Added by ChatGPT | 2026-04-30 14:35 KST]
+  // [2026-04-30 14:35 KST]
 // 알림 이벤트 목록 조회 (Fetch notification events)
   Future<List<NotificationEvent>> fetchNotifications() async {
     final dynamic decoded = await _getJson('/notifications/events');
@@ -344,22 +344,31 @@ class ApiService {
         .toList();
   }
 
-  // [Added by ChatGPT | 2026-04-30 14:20 KST]
-// 읽지 않은 알림 개수 조회 (Fetch unread notification count)
+  // [2026-04-30 14:20 KST]
+  // 읽지 않은 알림 개수 조회 (Fetch unread notification count)
   Future<int> fetchUnreadNotificationCount() async {
     final dynamic decoded = await _getJson('/notifications/events');
 
     return decoded['unread_count'] ?? 0;
   }
 
-// [Added by ChatGPT | 2026-04-30 14:20 KST]
+// [2026-04-30 14:20 KST]
 // 모든 알림 읽음 처리 (Mark all notifications as read)
   Future<void> markNotificationsAsRead() async {
     await _postJson('/notifications/events/read', <String, dynamic>{});
   }
 
-  // [Added by ChatGPT | 2026-05-11 11:00 KST]
-// FCM 토큰 서버 등록 (Register FCM token to backend)
+  // [2026-06-18 10:35 KST]
+  // 알림 1건 읽음 처리
+  Future<void> markNotificationAsRead(String eventId) async {
+    await _postJson(
+      '/notifications/events/$eventId/read',
+      <String, dynamic>{},
+    );
+  }
+
+  // [2026-05-11 11:00 KST]
+  // FCM 토큰 서버 등록 (Register FCM token to backend)
 
   Future<void> registerFcmToken(String token) async {
     final response = await _sendWithRetry(

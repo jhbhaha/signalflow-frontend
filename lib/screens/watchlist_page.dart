@@ -1,5 +1,5 @@
 // File: watchlist_page.dart (관심종목 화면)
-// [Modified by ChatGPT | 2026-05-08 18:40 KST]
+// [2026-05-08 18:40 KST]
 // SignalFlow 관심종목 페이지 UI 적용 (Apply SignalFlow watchlist page UI)
 // Insert Location: G:\stockmarket_frontend\lib\screens\watchlist_page.dart 전체 교체
 
@@ -88,8 +88,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
     });
 
     try {
-      // [Modified by ChatGPT | 2026-05-09 09:40 KST]
-// 관심종목 목록은 반드시 먼저 표시하고, 분석 실패는 별도로 처리 (Show watchlist even if analysis fails)
+      // [2026-05-09 09:40 KST]
+      // 관심종목 목록은 반드시 먼저 표시하고, 분석 실패는 별도로 처리 (Show watchlist even if analysis fails)
       final List<WatchItem> items = await _apiService.fetchWatchlistItems();
 
       List<AnalysisResponse> results = <AnalysisResponse>[];
@@ -167,9 +167,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
     }
   }
 
-  // [Modified by ChatGPT | 2026-05-11 09:30 KST]
-// 수동 다시 분석 버튼이 캐시 조회가 아니라 실제 분석 실행 후 최신 캐시를 다시 읽도록 수정
-// (Run watchlist analysis first, then reload the latest cached results)
+  // [2026-05-11 09:30 KST]
+  // 수동 다시 분석 버튼이 캐시 조회가 아니라 실제 분석 실행 후 최신 캐시를 다시 읽도록 수정 (Run watchlist analysis first, then reload the latest cached results)
   Future<void> _reloadAnalysis() async {
     setState(() {
       _isLoading = true;
@@ -388,6 +387,91 @@ class _WatchlistPageState extends State<WatchlistPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // [2026-06-13 17:20 KST]
+  // 관심종목 TOP3 랭킹 카드
+  Widget _buildTopRankCard() {
+    final rankedItems = List<WatchItem>.from(_watchItems);
+
+    rankedItems.sort((a, b) {
+      final aResult = _watchResults.firstWhere(
+            (r) => r.ticker == a.ticker,
+        orElse: () => AnalysisResponse.empty(),
+      );
+
+      final bResult = _watchResults.firstWhere(
+            (r) => r.ticker == b.ticker,
+        orElse: () => AnalysisResponse.empty(),
+      );
+
+      return (bResult.finalScore ?? 0).compareTo(aResult.finalScore ?? 0);
+    });
+
+    final topItems = rankedItems.take(3).toList();
+
+    if (topItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '🏆 관심종목 TOP 3',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...topItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+
+              final result = _watchResults.firstWhere(
+                    (r) => r.ticker == item.ticker,
+                orElse: () => AnalysisResponse.empty(),
+              );
+
+              final score = result.finalScore ?? 0;
+              final status = result.finalStatus ?? 'WAIT';
+
+              final medal = index == 0
+                  ? '🥇'
+                  : index == 1
+                  ? '🥈'
+                  : '🥉';
+
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Text(
+                  medal,
+                  style: const TextStyle(fontSize: 24),
+                ),
+                title: Text(
+                  item.stockName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: Text(item.ticker),
+                trailing: Text(
+                  '$score점',
+                  style: TextStyle(
+                    color: _statusColor(status),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -815,6 +899,9 @@ class _WatchlistPageState extends State<WatchlistPage> {
             _buildEmptyCard(_errorMessage!)
           else ...<Widget>[
               _buildInfoCard(),
+              const SizedBox(height: 16),
+
+              _buildTopRankCard(),
               const SizedBox(height: 16),
 
               const SizedBox(height: 18),

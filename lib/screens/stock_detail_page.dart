@@ -8,13 +8,11 @@ import '../models/analysis_response.dart';
 import '../services/api_service.dart';
 import '../models/signal_history_item.dart';
 import '../models/attack_statistics.dart';
-// [2026-05-13 14:05 KST]
-// 상태 변화 점수 차트 패키지 추가
+// [2026-05-13 14:05 KST] 상태 변화 점수 차트 패키지 추가
 // (Add signal score chart package)
 import 'package:fl_chart/fl_chart.dart';
 // [2026-05-24 00:05 KST]
-// Skeleton 로딩 UI 패키지 추가
-// (Add skeleton loading UI package)
+// Skeleton 로딩 UI 패키지 추가 (Add skeleton loading UI package)
 import 'package:shimmer/shimmer.dart';
 
 // [2026-06-12 23:59 KST]
@@ -439,12 +437,12 @@ class _StockDetailPageState extends State<StockDetailPage> {
             child: LineChart(
               LineChartData(
                 minY: 0,
-                maxY: 100,
+                maxY: 10,
 
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: 20,
+                  horizontalInterval: 2,
                   getDrawingHorizontalLine: (_) {
                     return FlLine(
                       color: Theme.of(context)
@@ -460,7 +458,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 32,
-                      interval: 20,
+                      interval: 2,
                       getTitlesWidget: (value, meta) {
                         return Text(
                           value.toInt().toString(),
@@ -473,11 +471,33 @@ class _StockDetailPageState extends State<StockDetailPage> {
                     ),
                   ),
 
+                  // [2026-06-15 16:55 KST]
+                  // X축은 같은 시간 데이터 구분을 위해 최근 변화 순번으로 표시
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (_, __) {
-                        return const SizedBox.shrink();
+                      reservedSize: 28,
+                      getTitlesWidget: (value, meta) {
+                        final index = value.toInt();
+
+                        if (index < 0 || index >= _timelineItems.length) {
+                          return const SizedBox.shrink();
+                        }
+
+                        if (_timelineItems.length > 8 && index % 3 != 0) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            '#${index + 1}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -493,7 +513,7 @@ class _StockDetailPageState extends State<StockDetailPage> {
                 lineBarsData: [
                   LineChartBarData(
                     spots: spots,
-                    isCurved: true,
+                    isCurved: false,
                     color: const Color(0xFF22C55E),
                     barWidth: 4,
                     dotData: FlDotData(
@@ -526,7 +546,6 @@ class _StockDetailPageState extends State<StockDetailPage> {
       },
     );
   }
-
   // [2026-05-13 11:20 KST]
   // SignalFlow 전체 상태 색상 규칙 통일 (Unify SignalFlow status color rules)
   Color _statusColor(String status) {

@@ -58,7 +58,7 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
   Future<void> _openStockDetail(NotificationEvent event) async {
     try {
       if (!event.read) {
-        await _apiService.markNotificationsAsRead();
+        await _apiService.markNotificationAsRead(event.id);
         await _refresh();
       }
     } catch (error) {

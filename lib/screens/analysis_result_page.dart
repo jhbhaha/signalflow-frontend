@@ -733,10 +733,17 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     // 재무분석 API에서 받은 실제 재무점수 반영
     final int financialScore = _financialScore ?? 50;
 
+    // [2026-06-13 16:35 KST]
+    // SignalFlow 종합점수 계산 근거 표시용 가중 점수
+    final double technicalWeightedScore = technicalScore * 0.4;
+    final double aiWeightedScore = aiScoreValue * 0.3;
+    final double financialWeightedScore = financialScore * 0.3;
+    // [2026-06-13 16:45 KST]
+    // SignalFlow 종합점수 최종 계산
     final int overallScore = (
-        technicalScore * 0.4 +
-            aiScoreValue * 0.3 +
-            financialScore * 0.3
+        technicalWeightedScore +
+            aiWeightedScore +
+            financialWeightedScore
     ).round();
 
     String overallGrade;
@@ -1096,6 +1103,51 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                       : '$financialScore ($_financialGrade)',
                 ),
               ),
+              const Divider(height: 24),
+
+              // [2026-06-13 16:35 KST]
+              // SignalFlow 종합점수 산식 표시
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .surface
+                      .withValues(alpha: 0.60),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '점수 계산 근거',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '기술점수 $technicalScore × 40% = ${technicalWeightedScore.toStringAsFixed(1)}',
+                    ),
+                    Text(
+                      'AI점수 $aiScoreValue × 30% = ${aiWeightedScore.toStringAsFixed(1)}',
+                    ),
+                    Text(
+                      '재무점수 $financialScore × 30% = ${financialWeightedScore.toStringAsFixed(1)}',
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '합계 ${technicalWeightedScore.toStringAsFixed(1)} + '
+                          '${aiWeightedScore.toStringAsFixed(1)} + '
+                          '${financialWeightedScore.toStringAsFixed(1)} = $overallScore점',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -1296,8 +1348,16 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
         const SizedBox(height: 12),
 
-// [2026-06-03 14:40 KST]
-// AI 분석 카드 (AI Analysis Card)
+        // [2026-06-15 14:50 KST]
+        // 상태 요약 아래 광고 배치
+        const AdMobBannerAdWidget(
+          realAdUnitId: 'ca-app-pub-5880993243034417/3861514107',
+        ),
+
+        const SizedBox(height: 12),
+
+        // [2026-06-03 14:40 KST]
+        // AI 분석 카드 (AI Analysis Card)
         _buildSectionCard(
           title: '🤖 AI 분석',
           child: Column(
@@ -1451,16 +1511,6 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
           title: '원본 메시지',
           child: Text(message),
         ),
-
-        const SizedBox(height: 16),
-
-        // [2026-06-05 00:20 KST]
-        // 분석 결과 화면 하단 AdMob 배너 광고 (Analysis result page bottom AdMob banner ad)
-        const AdMobBannerAdWidget(
-          realAdUnitId: 'ca-app-pub-5880993243034417/3861514107',
-        ),
-
-        const SizedBox(height: 8),
       ],
     );
   }

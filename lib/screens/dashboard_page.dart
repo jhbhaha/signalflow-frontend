@@ -126,7 +126,7 @@ class _DashboardPageState extends State<DashboardPage>
     // 60초마다 Dashboard 자동 새로고침
     // (Auto refresh dashboard every 60 seconds)
     _autoRefreshTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      const Duration(minutes: 2),
           (_) {
         if (mounted) {
           _loadSummary();
@@ -140,7 +140,7 @@ class _DashboardPageState extends State<DashboardPage>
     // 30초마다 읽지 않은 상태 변화 알림 확인
     // (Check unread signal notifications every 30 seconds)
     _notificationTimer = Timer.periodic(
-      const Duration(seconds: 30),
+      const Duration(minutes: 2),
           (_) {
         if (mounted) {
           _checkAndShowUnreadNotification();
@@ -158,8 +158,8 @@ class _DashboardPageState extends State<DashboardPage>
     super.dispose();
   }
 
-  // Dashboard API 병렬 처리 최적화
-  // (Optimize dashboard loading with parallel API requests)
+  // [2026-06-18 11:20 KST]
+  // 대시보드 핵심 데이터는 먼저 표시하고, 느린 시장 흐름 API는 백그라운드에서 별도 로딩
   Future<void> _loadSummary() async {
     setState(() {
       _isLoading = _summary == null;
@@ -169,22 +169,13 @@ class _DashboardPageState extends State<DashboardPage>
     try {
       final results = await Future.wait([
         _apiService.fetchDashboardSummary(),
-        _apiService.fetchMarketOverview(),
         _apiService.fetchTopRecommendations(),
       ]);
 
-      final DashboardSummary summary =
-      results[0] as DashboardSummary;
-
-      final MarketOverview marketOverview =
-      results[1] as MarketOverview;
+      final DashboardSummary summary = results[0] as DashboardSummary;
 
       final List<RecommendationItem> recommendations =
-      results[2] as List<RecommendationItem>;
-
-      // [2026-05-21 15:30 KST]
-      // 추천 종목 점수 기준 정렬
-      // (Sort recommendations by final score)
+      results[1] as List<RecommendationItem>;
 
       recommendations.sort(
             (a, b) => b.finalScore.compareTo(a.finalScore),
@@ -199,46 +190,49 @@ class _DashboardPageState extends State<DashboardPage>
         recommendations: recommendations,
       );
 
-      // signal history 병렬 preload
-      // (Parallel preload for signal history)
-      await Future.wait(
-        summary.topSignals.map(
-              (signal) => _loadSignalHistory(signal.ticker),
-        ),
-      );
-
-      if (!mounted) return;
-
       setState(() {
         _summary = summary;
-        _marketOverview = marketOverview;
         _recommendations = recommendations;
         _lastUpdatedAt = DateTime.now();
         _isOfflineMode = false;
+        _isLoading = false;
 
         _cachedSummary = summary;
-        _cachedMarketOverview = marketOverview;
         _cachedRecommendations = recommendations;
       });
+
+      // [2026-06-18 11:20 KST]
+      // 시장 흐름은 대시보드 표시 후 별도 로딩
+      _loadMarketOverviewInBackground();
     } catch (error) {
       if (!mounted) return;
 
       setState(() {
         _isOfflineMode = true;
 
-        // 기존 cache 데이터가 있으면 에러 화면 대신 유지
-        // (Keep previous cache data instead of error screen)
         if (_summary == null) {
-          _errorMessage =
-          '서버 연결이 불안정합니다. 잠시 후 다시 시도해 주세요.';
+          _errorMessage = '서버 연결이 불안정합니다. 잠시 후 다시 시도해 주세요.';
         }
+
+        _isLoading = false;
       });
-    } finally {
+    }
+  }
+
+  // [2026-06-18 11:20 KST]
+  // 시장 흐름 API는 느릴 수 있으므로 대시보드 표시 후 백그라운드에서 갱신
+  Future<void> _loadMarketOverviewInBackground() async {
+    try {
+      final marketOverview = await _apiService.fetchMarketOverview();
+
       if (!mounted) return;
 
       setState(() {
-        _isLoading = false;
+        _marketOverview = marketOverview;
+        _cachedMarketOverview = marketOverview;
       });
+    } catch (error) {
+      debugPrint('market overview background load failed: $error');
     }
   }
 
@@ -341,28 +335,8 @@ class _DashboardPageState extends State<DashboardPage>
     return const Color(0xFF64748B);
   }
 
-  // 종목별 signal history 미리 로드
-  // (Preload signal history by ticker)
-  Future<void> _loadSignalHistory(
-      String ticker,
-      ) async {
-    if (_signalHistoryCache.containsKey(ticker)) {
-      return;
-    }
-
-    try {
-      final items =
-      await _apiService.fetchSignalHistoryByTicker(
-        ticker: ticker,
-      );
-
-      _signalHistoryCache[ticker] = items;
-    } catch (_) {}
-  }
-
   // [2026-05-21 19:05 KST]
-  // 추천 종목을 관심종목에 저장
-  // (Save recommendation item to watchlist)
+  // 추천 종목을 관심종목에 저장 (Save recommendation item to watchlist)
   Future<void> _saveRecommendationToWatchlist(
       RecommendationItem item,
       ) async {
@@ -654,6 +628,14 @@ class _DashboardPageState extends State<DashboardPage>
               summary: summary,
             ),
             const SizedBox(height: 12),
+
+            // [2026-06-15 14:40 KST]
+            // ETF 섹터 흐름 아래 광고 배치
+            const AdMobBannerAdWidget(
+              realAdUnitId: 'ca-app-pub-5880993243034417/8072752082',
+            ),
+            const SizedBox(height: 12),
+
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 240)
                 : RecommendationCard(
@@ -697,13 +679,6 @@ class _DashboardPageState extends State<DashboardPage>
                 ],
               ),
             ),
-            // [2026-06-05 00:00 KST]
-            // Dashboard 하단 AdMob 배너 광고 (Dashboard bottom AdMob banner ad)
-            const SizedBox(height: 16),
-            const AdMobBannerAdWidget(
-              realAdUnitId: 'ca-app-pub-5880993243034417/8072752082',
-            ),
-            const SizedBox(height: 8),
           ],
         ),
       ),
