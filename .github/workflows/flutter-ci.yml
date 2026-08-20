@@ -1,0 +1,39 @@
+# File: .github/workflows/flutter-ci.yml
+# Last Modified: 2026-08-20 21:15 KST (작성자: ChatGPT)
+# Insert Location: GitHub > signalflow-frontend > Actions > set up a workflow yourself
+
+name: Flutter App CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  flutter-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Show Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
