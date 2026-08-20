@@ -1,9 +1,5 @@
-// File: notification_page.dart (알림 화면)
-// [Modified by ChatGPT | 2026-05-08 17:30 KST]
-// SignalFlow 다크 알림 카드 스타일 적용 (Apply SignalFlow dark notification card style)
-// Insert Location: G:\stockmarket_frontend\lib\screens\notification_page.dart 전체 교체
-
 import 'package:flutter/material.dart';
+
 import '../models/notification_event.dart';
 import '../services/api_service.dart';
 
@@ -16,6 +12,7 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage> {
   final ApiService _api = ApiService();
+
   List<NotificationEvent> _events = [];
   bool _loading = true;
 
@@ -26,38 +23,42 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Color _statusColor(String status) {
-    if (status.startsWith('ATTACK')) return const Color(0xFF22C55E);
-    if (status.startsWith('WATCH')) return const Color(0xFFF59E0B);
-    if (status == 'RISK') return const Color(0xFFEF4444);
+    if (status.startsWith('ATTACK')) return const Color(0xFFDC2626);
+    if (status.startsWith('WATCH')) return const Color(0xFFD97706);
+    if (status == 'RISK') return const Color(0xFF2563EB);
     return const Color(0xFF64748B);
   }
 
   IconData _statusIcon(String status) {
-    if (status.startsWith('ATTACK')) return Icons.trending_up;
-    if (status.startsWith('WATCH')) return Icons.visibility;
+    if (status.startsWith('ATTACK')) return Icons.trending_up_rounded;
+    if (status.startsWith('WATCH')) return Icons.visibility_rounded;
     if (status == 'RISK') return Icons.warning_amber_rounded;
-    return Icons.history;
+    return Icons.history_rounded;
+  }
+
+  String _statusLabel(String status) {
+    if (status.startsWith('ATTACK')) return '\uACF5\uACA9';
+    if (status.startsWith('WATCH')) return '\uAD00\uCC30';
+    if (status == 'RISK') return '\uC704\uD5D8';
+    return '\uB300\uAE30';
   }
 
   Future<void> _load() async {
     try {
       final data = await _api.fetchNotifications();
-
       if (!mounted) return;
-
       setState(() {
         _events = data;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+      });
     }
   }
 
-  // 전체 알림 읽음 처리
-  // (Mark all notifications as read)
   Future<void> _markAllAsRead() async {
     try {
       await _api.markNotificationsAsRead();
@@ -67,61 +68,49 @@ class _NotificationPageState extends State<NotificationPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('모든 알림을 읽음 처리했습니다.'),
+          content: Text(
+              '\uBAA8\uB4E0 \uC54C\uB9BC\uC744 \uC77D\uC74C \uCC98\uB9AC\uD588\uC2B5\uB2C8\uB2E4.'),
         ),
       );
-    } catch (e) {
+    } catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('읽음 처리에 실패했습니다. $e'),
+          content: Text(
+              '\uC77D\uC74C \uCC98\uB9AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. $error'),
         ),
       );
     }
   }
 
   Widget _buildNotificationCard(NotificationEvent event) {
-    final Color color = _statusColor(event.currentStatus);
-    final bool unread = !event.read;
+    final color = _statusColor(event.currentStatus);
+    final unread = !event.read;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: color.withValues(alpha: unread ? 0.45 : 0.20),
-        ),
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: unread ? 0.16 : 0.08),
-            const Color(0xFF0F172A),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: unread ? 0.18 : 0.08),
-            blurRadius: unread ? 18 : 10,
-            spreadRadius: unread ? 1 : 0,
-          ),
-        ],
-      ),
-      child: Padding(
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
         padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: unread
+                ? color.withValues(alpha: 0.34)
+                : Theme.of(context).dividerColor.withValues(alpha: 0.16),
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 38,
               height: 38,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: color.withValues(alpha: 0.35),
-                ),
+                color: color.withValues(alpha: unread ? 0.14 : 0.08),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Icon(
                 _statusIcon(event.currentStatus),
@@ -139,70 +128,62 @@ class _NotificationPageState extends State<NotificationPage> {
                       Expanded(
                         child: Text(
                           event.stockName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontSize: 15,
-                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
-                      if (unread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
+                      Text(
+                        unread ? 'NEW' : 'READ',
+                        style: TextStyle(
+                          color: unread
+                              ? color
+                              : Theme.of(context).textTheme.bodyMedium?.color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
                         ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   Text(
-                    '${event.prevStatus} → ${event.currentStatus}',
+                    event.ticker,
                     style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                       fontSize: 12,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     event.message,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      height: 1.35,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 13,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          '${event.finalScore}점',
-                          style: TextStyle(
-                            color: color,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                      _buildBadge(
+                        '${_statusLabel(event.prevStatus)} \u2192 ${_statusLabel(event.currentStatus)}',
+                        color,
                       ),
-                      const Spacer(),
+                      _buildBadge('${event.finalScore}\uC810', color),
                       Text(
-                        unread ? 'NEW' : 'READ',
+                        event.createdAt,
                         style: TextStyle(
-                          color: unread ? color : Colors.white38,
-                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                           fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -216,17 +197,81 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
+  Widget _buildBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 24),
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.notifications_none_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 40,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '\uC54C\uB9BC \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '\uC0C8\uB85C\uC6B4 ATTACK / WATCH \uC0C1\uD0DC \uBCC0\uD654\uAC00 \uBC1C\uC0DD\uD558\uBA74\n\uC774\uACF3\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 12,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
-        title: const Text('알림 기록'),
+        title: const Text('\uC54C\uB9BC \uAE30\uB85D'),
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: '전체 읽음 처리',
-            icon: const Icon(Icons.done_all),
+            tooltip: '\uC804\uCCB4 \uC77D\uC74C \uCC98\uB9AC',
+            icon: const Icon(Icons.done_all_rounded),
             onPressed: _events.isEmpty ? null : _markAllAsRead,
           ),
         ],
@@ -234,74 +279,18 @@ class _NotificationPageState extends State<NotificationPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _events.isEmpty
-          ? Center(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 28,
-          ),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.06),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
-                  shape: BoxShape.circle,
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _events.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      return _buildNotificationCard(_events[index]);
+                    },
+                  ),
                 ),
-                child: const Icon(
-                  Icons.notifications_none_rounded,
-                  color: Color(0xFF94A3B8),
-                  size: 34,
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              const Text(
-                '알림 기록이 없습니다',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                '새로운 ATTACK / WATCH 상태 변화가 발생하면\n이곳에 표시됩니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-      )
-          : RefreshIndicator(
-        onRefresh: _load,
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _events.length,
-          itemBuilder: (context, index) {
-            final event = _events[index];
-            return _buildNotificationCard(event);
-          },
-        ),
-      ),
     );
   }
 }

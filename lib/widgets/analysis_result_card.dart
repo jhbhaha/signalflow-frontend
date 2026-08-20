@@ -132,9 +132,9 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
                             ),
                           ),
                           if (result.shouldNotify)
-                            Chip(
-                              label: const Text('알림'),
-                              avatar: const Icon(
+                            const Chip(
+                              label: Text('알림'),
+                              avatar: Icon(
                                 Icons.notifications_active_outlined,
                                 size: 18,
                               ),
@@ -160,12 +160,14 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
                           _buildCompactChip(
                             label: '최종',
                             value: result.finalStatus ?? result.status,
-                            color: _getStatusColor(result.finalStatus ?? result.status),
+                            color: _getStatusColor(
+                                result.finalStatus ?? result.status),
                           ),
                           _buildCompactChip(
                             label: '점수',
                             value: '${result.finalScore ?? result.statusScore}',
-                            color: _getStatusColor(result.finalStatus ?? result.status),
+                            color: _getStatusColor(
+                                result.finalStatus ?? result.status),
                           ),
                           // [Fixed by ChatGPT | 2026-04-24 19:20 KST] ETF Chip 구조 오류 수정
                           _buildCompactChip(
@@ -173,7 +175,8 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
                             value: result.etfRecommendations.isNotEmpty
                                 ? result.etfRecommendations.first.etfName
                                 : '없음',
-                            color: _getStatusColor(result.finalStatus ?? result.status),
+                            color: _getStatusColor(
+                                result.finalStatus ?? result.status),
                           ),
                         ],
                       ),
@@ -208,25 +211,30 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
                             _buildListSection(context, '위험', result.riskFlags),
                             if (result.alerts.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 16),
-                              Text('알림 메시지', style: Theme.of(context).textTheme.titleMedium),
+                              Text('알림 메시지',
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium),
                               const SizedBox(height: 8),
                               ...result.alerts.map((alert) => Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.black12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(alert.subject, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    const SizedBox(height: 6),
-                                    Text(alert.body),
-                                  ],
-                                ),
-                              )),
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.black12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(alert.subject,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 6),
+                                        Text(alert.body),
+                                      ],
+                                    ),
+                                  )),
                             ],
                           ],
                         ),
@@ -241,6 +249,7 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
       ),
     );
   }
+
   // 핵심 판단 정보를 Chip 형태로 압축 표시
   Widget _buildCompactChip({
     required String label,
@@ -261,10 +270,10 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
   }
 
   Widget _buildListSection(
-      BuildContext context,
-      String title,
-      List<String> items,
-      ) {
+    BuildContext context,
+    String title,
+    List<String> items,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -276,7 +285,7 @@ class _AnalysisResultCardState extends State<AnalysisResultCard> {
             const Text('-')
           else
             ...items.map(
-                  (item) => Padding(
+              (item) => Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text('- $item'),
               ),

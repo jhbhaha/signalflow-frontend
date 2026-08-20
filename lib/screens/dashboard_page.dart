@@ -19,12 +19,17 @@ import '../models/signal_history_item.dart';
 // 상태 설명 페이지 연결 추가 (Add status help page navigation)
 import 'status_help_page.dart';
 import '../widgets/dashboard/attack_top5_card.dart';
-import '../widgets/dashboard/recommendation_card.dart';
+// [Modified by Claude | 2026-08-10 KST]
+// 홈 화면 "오늘의 추천 종목" 카드를 "오늘의 대응 전략" 카드로 대체
+// (RecommendationCard는 분석 탭(analysis_page.dart)에서 계속 사용하므로 삭제하지 않음)
+import '../models/response_strategy.dart';
+import '../widgets/dashboard/response_strategy_card.dart';
 import '../widgets/dashboard/market_card.dart';
 import '../widgets/dashboard/signal_summary_card.dart';
 import '../widgets/dashboard/top_signals_card.dart';
 import '../widgets/dashboard/etf_sector_flow_card.dart';
 import '../widgets/dashboard/market_risk_gauge_card.dart';
+import '../widgets/dashboard/today_market_brief_card.dart';
 import '../services/dashboard_cache_service.dart';
 import 'analysis_result_page.dart';
 import '../widgets/admob_banner_ad_widget.dart';
@@ -53,7 +58,11 @@ class _DashboardPageState extends State<DashboardPage>
   // (Dashboard memory cache)
   static DashboardSummary? _cachedSummary;
   static MarketOverview? _cachedMarketOverview;
-  static List<RecommendationItem> _cachedRecommendations = <RecommendationItem>[];
+  static List<RecommendationItem> _cachedRecommendations =
+      <RecommendationItem>[];
+  // [Added by Claude | 2026-08-10 KST]
+  // "오늘의 대응 전략" 메모리 캐시
+  static ResponseStrategy? _cachedResponseStrategy;
 
   DashboardSummary? _summary;
   // [2026-05-29 18:40 KST]
@@ -85,8 +94,14 @@ class _DashboardPageState extends State<DashboardPage>
   String? _recentAttackTicker;
   // 종목별 signal history 캐시
   // (Signal history cache by ticker)
-  final Map<String, List<SignalHistoryItem>>
-  _signalHistoryCache = {};
+  final Map<String, List<SignalHistoryItem>> _signalHistoryCache = {};
+
+  // [Added by Claude | 2026-08-10 KST]
+  // "오늘의 대응 전략" 데이터 및 로딩/오류 상태
+  // (API 오류가 대시보드 전체 실패로 이어지지 않도록 별도 상태로 분리)
+  ResponseStrategy? _responseStrategy;
+  bool _isResponseStrategyLoading = true;
+  bool _hasResponseStrategyError = false;
 
   @override
   void initState() {
@@ -108,14 +123,24 @@ class _DashboardPageState extends State<DashboardPage>
       _marketOverview = _cachedMarketOverview;
       _recommendations = _cachedRecommendations;
     }
+    // [Added by Claude | 2026-08-10 KST]
+    // 캐시된 대응 전략이 있으면 먼저 표시
+    if (_cachedResponseStrategy != null) {
+      _responseStrategy = _cachedResponseStrategy;
+      _isResponseStrategyLoading = false;
+    }
 
     _loadSummary();
     _loadSavedTickers();
+    // [Added by Claude | 2026-08-10 KST]
+    // "오늘의 대응 전략"은 대시보드 핵심 데이터와 독립적으로 로딩
+    // (이 API가 실패해도 대시보드 전체가 오류 상태로 빠지지 않도록 분리)
+    _loadResponseStrategyInBackground();
     // [2026-06-12 22:30 KST]
     // 최초 진입 AI 분석 연출 종료
     Future.delayed(
       const Duration(seconds: 2),
-          () {
+      () {
         if (!mounted) return;
 
         setState(() {
@@ -127,7 +152,7 @@ class _DashboardPageState extends State<DashboardPage>
     // (Auto refresh dashboard every 60 seconds)
     _autoRefreshTimer = Timer.periodic(
       const Duration(minutes: 2),
-          (_) {
+      (_) {
         if (mounted) {
           _loadSummary();
         }
@@ -141,7 +166,7 @@ class _DashboardPageState extends State<DashboardPage>
     // (Check unread signal notifications every 30 seconds)
     _notificationTimer = Timer.periodic(
       const Duration(minutes: 2),
-          (_) {
+      (_) {
         if (mounted) {
           _checkAndShowUnreadNotification();
         }
@@ -175,10 +200,10 @@ class _DashboardPageState extends State<DashboardPage>
       final DashboardSummary summary = results[0] as DashboardSummary;
 
       final List<RecommendationItem> recommendations =
-      results[1] as List<RecommendationItem>;
+          results[1] as List<RecommendationItem>;
 
       recommendations.sort(
-            (a, b) => b.finalScore.compareTo(a.finalScore),
+        (a, b) => b.finalScore.compareTo(a.finalScore),
       );
 
       if (!mounted) return;
@@ -236,15 +261,51 @@ class _DashboardPageState extends State<DashboardPage>
     }
   }
 
+  // [Added by Claude | 2026-08-10 KST]
+  // "오늘의 대응 전략" 데이터를 독립적으로 로딩.
+  // 실패하더라도 대시보드의 다른 카드에는 영향을 주지 않고,
+  // 카드 자체는 오류 상태를 별도로 표시한다.
+  Future<void> _loadResponseStrategyInBackground() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isResponseStrategyLoading = _responseStrategy == null;
+      _hasResponseStrategyError = false;
+    });
+
+    try {
+      final responseStrategy = await _apiService.fetchResponseStrategy();
+
+      if (!mounted) return;
+
+      setState(() {
+        _responseStrategy = responseStrategy;
+        _isResponseStrategyLoading = false;
+        _hasResponseStrategyError = false;
+
+        _cachedResponseStrategy = responseStrategy;
+      });
+    } catch (error) {
+      debugPrint('response strategy background load failed: $error');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isResponseStrategyLoading = false;
+        _hasResponseStrategyError = true;
+      });
+    }
+  }
+
   // 새 ATTACK 종목 감지
   // (Detect newly appeared ATTACK signals)
   void _detectNewAttackSignals(
-      DashboardSummary summary,
-      ) {
+    DashboardSummary summary,
+  ) {
     final currentAttackTickers = summary.topSignals
         .where(
           (item) => item.finalStatus.startsWith('ATTACK'),
-    )
+        )
         .map((e) => e.ticker)
         .toSet();
 
@@ -258,14 +319,14 @@ class _DashboardPageState extends State<DashboardPage>
       _recentAttackTicker = newTicker;
 
       final signal = summary.topSignals.firstWhere(
-            (e) => e.ticker == newTicker,
+        (e) => e.ticker == newTicker,
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFFEF4444),
           content: Text(
-            '새 ATTACK 포착: ${signal.stockName}',
+            '새 ATTACK 신호: ${signal.stockName}',
           ),
         ),
       );
@@ -310,12 +371,10 @@ class _DashboardPageState extends State<DashboardPage>
       await NotificationLocalService.showEventNotification(latestEvent);
 
       if (!mounted) return;
-
     } catch (e) {
       debugPrint('notification count load error: $e');
     }
   }
-
 
   // 한국 주식 시장 기준 상태 색상 적용
   // 상승=빨강 / 위험=파랑
@@ -335,26 +394,28 @@ class _DashboardPageState extends State<DashboardPage>
     return const Color(0xFF64748B);
   }
 
-  // [2026-05-21 19:05 KST]
-  // 추천 종목을 관심종목에 저장 (Save recommendation item to watchlist)
-  Future<void> _saveRecommendationToWatchlist(
-      RecommendationItem item,
-      ) async {
+  // [Modified by Claude | 2026-08-10 KST]
+  // 기존 "추천 종목 저장" 로직을 ticker/stockName 기반으로 일반화.
+  // "오늘의 대응 전략" 카드(공격/회복/위험 각 탭)에서도 동일하게 재사용한다.
+  Future<void> _saveTickerToWatchlist({
+    required String ticker,
+    required String stockName,
+  }) async {
     try {
       await _apiService.addWatchlistItem(
-        ticker: item.ticker,
-        stockName: item.stockName,
+        ticker: ticker,
+        stockName: stockName,
       );
 
       if (!mounted) return;
 
       setState(() {
-        _savedTickers.add(item.ticker);
+        _savedTickers.add(ticker);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${item.stockName} 저장 완료'),
+          content: Text('$stockName 저장 완료'),
         ),
       );
     } catch (e) {
@@ -372,8 +433,8 @@ class _DashboardPageState extends State<DashboardPage>
   // 최고 점수 종목 분석 열기
   // (Open analysis for highest scored signal)
   Future<void> _openBestSignalAnalysis(
-      DashboardSummary summary,
-      ) async {
+    DashboardSummary summary,
+  ) async {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -398,7 +459,7 @@ class _DashboardPageState extends State<DashboardPage>
       final sortedSignals = [...summary.topSignals];
 
       sortedSignals.sort(
-            (a, b) => b.finalScore.compareTo(a.finalScore),
+        (a, b) => b.finalScore.compareTo(a.finalScore),
       );
 
       final first = sortedSignals.first;
@@ -442,11 +503,10 @@ class _DashboardPageState extends State<DashboardPage>
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              AnalysisResultPage(
-                ticker: ticker,
-                stockName: stockName,
-              ),
+          builder: (_) => AnalysisResultPage(
+            ticker: ticker,
+            stockName: stockName,
+          ),
         ),
       );
     } finally {
@@ -461,28 +521,19 @@ class _DashboardPageState extends State<DashboardPage>
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('대시보드'),
-        ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildSkeletonCard(height: 180),
-            const SizedBox(height: 12),
-
-            _buildSkeletonCard(height: 120),
-            const SizedBox(height: 12),
-
-            _buildSkeletonCard(height: 220),
-            const SizedBox(height: 12),
-
-            _buildSkeletonCard(height: 260),
-            const SizedBox(height: 12),
-
-            _buildSkeletonCard(height: 180),
-          ],
-        ),
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSkeletonCard(height: 180),
+          const SizedBox(height: 12),
+          _buildSkeletonCard(height: 120),
+          const SizedBox(height: 12),
+          _buildSkeletonCard(height: 220),
+          const SizedBox(height: 12),
+          _buildSkeletonCard(height: 260),
+          const SizedBox(height: 12),
+          _buildSkeletonCard(height: 180),
+        ],
       );
     }
 
@@ -496,95 +547,36 @@ class _DashboardPageState extends State<DashboardPage>
       return const Center(child: Text('대시보드 데이터가 없습니다.'));
     }
 
-    // Scaffold 안에 RefreshIndicator를 body로 연결 (Connect RefreshIndicator as Scaffold body)
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('대시보드'),
-        actions: [
-          // 상태 설명 페이지 이동 버튼 추가 (Add status help page button)
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            tooltip: '상태 설명',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const StatusHelpPage(),
-                ),
-              );
-            },
-          ),
-
-          // [Modified by ChatGPT | 2026-05-19 15:35 KST]
-// 새 ATTACK 발생 시 실시간 시그널 아이콘에 dot 표시
-// (Show dot on live signal icon when new ATTACK appears)
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.bolt_rounded,
-                  color: Color(0xFFF59E0B),
-                ),
-                tooltip: '공격 후보',
-                onPressed: () {
-                  setState(() {
-                    _recentAttackTicker = null;
-                  });
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AttackListPage(
-                        signals: summary.topSignals,
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              if (_recentAttackTicker != null)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFEF4444),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadSummary,
+    return RefreshIndicator(
+        onRefresh: () async {
+          // [Modified by Claude | 2026-08-10 KST]
+          // 새로고침 시 "오늘의 대응 전략"도 함께 갱신
+          await Future.wait([
+            _loadSummary(),
+            _loadResponseStrategyInBackground(),
+          ]);
+        },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _buildLiveUpdateBar(),
+            _buildDashboardToolbar(summary),
+            const SizedBox(height: 12),
+            _showAnalysisAnimation
+                ? _buildSkeletonCard(height: 360)
+                : TodayMarketBriefCard(
+                    summary: summary,
+                    recommendations: _recommendations,
+                    onBestTap: () => _openBestSignalAnalysis(summary),
+                    onSignalTap: _openAnalysisWithCache,
+                  ),
             const SizedBox(height: 12),
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 180)
                 : MarketCard(
-              summary: summary,
-              marketOverview: _marketOverview,
-              statusColor: _statusColor,
-              onWatchNowTap: () => _openBestSignalAnalysis(summary),
-              onAttackListTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AttackListPage(
-                      signals: summary.topSignals,
-                    ),
+                    summary: summary,
+                    marketOverview: _marketOverview,
+                    statusColor: _statusColor,
                   ),
-                );
-              },
-            ),
             // 시장 위험도 Gauge 카드 추가
             // (Add market risk gauge card)
             const SizedBox(height: 12),
@@ -593,40 +585,40 @@ class _DashboardPageState extends State<DashboardPage>
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 160)
                 : MarketRiskGaugeCard(
-              summary: summary,
-            ),
+                    summary: summary,
+                  ),
             const SizedBox(height: 12),
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 180)
                 : SignalSummaryCard(
-              summary: summary,
-            ),
+                    summary: summary,
+                  ),
             const SizedBox(height: 12),
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 180)
                 : TopSignalsCard(
-              summary: summary,
-              recentAttackTicker: _recentAttackTicker,
-              signalHistoryCache: _signalHistoryCache,
-              statusColor: _statusColor,
-              onSignalTap: _openAnalysisWithCache,
-            ),
+                    summary: summary,
+                    recentAttackTicker: _recentAttackTicker,
+                    signalHistoryCache: _signalHistoryCache,
+                    statusColor: _statusColor,
+                    onSignalTap: _openAnalysisWithCache,
+                  ),
             // 실시간 ATTACK TOP5 카드 추가
             // (Add realtime ATTACK TOP5 card)
             const SizedBox(height: 12),
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 180)
                 : AttackTop5Card(
-              summary: summary,
-              recentAttackTicker: _recentAttackTicker,
-              onAttackTap: _openAnalysisWithCache,
-            ),
+                    summary: summary,
+                    recentAttackTicker: _recentAttackTicker,
+                    onAttackTap: _openAnalysisWithCache,
+                  ),
             const SizedBox(height: 12),
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 180)
                 : EtfSectorFlowCard(
-              summary: summary,
-            ),
+                    summary: summary,
+                  ),
             const SizedBox(height: 12),
 
             // [2026-06-15 14:40 KST]
@@ -636,39 +628,42 @@ class _DashboardPageState extends State<DashboardPage>
             ),
             const SizedBox(height: 12),
 
+            // [Modified by Claude | 2026-08-10 KST]
+            // 기존 "오늘의 추천 종목"(RecommendationCard)을
+            // "오늘의 대응 전략"(ResponseStrategyCard)으로 교체
             _showAnalysisAnimation
                 ? _buildSkeletonCard(height: 240)
-                : RecommendationCard(
-              recommendations: _recommendations,
-              savedTickers: _savedTickers,
-              onItemTap: _openAnalysisWithCache,
-              onSaveTap: _saveRecommendationToWatchlist,
-            ),
+                : ResponseStrategyCard(
+                    strategy: _responseStrategy,
+                    isLoading: _isResponseStrategyLoading,
+                    hasError: _hasResponseStrategyError,
+                    savedTickers: _savedTickers,
+                    onItemTap: _openAnalysisWithCache,
+                    onSaveTap: _saveTickerToWatchlist,
+                  ),
             const SizedBox(height: 20),
 
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFF59E0B)
-                    .withValues(alpha: 0.08),
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Color(0xFFF59E0B)
-                      .withValues(alpha: 0.25),
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
                 ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.warning_amber_rounded,
                     color: Color(0xFFF59E0B),
                     size: 20,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '본 앱의 분석 결과는 투자 참고용이며, 투자 손실에 대한 책임은 사용자 본인에게 있습니다.',
+                      '본 앱의 분석 결과는 투자 참고용이며, 투자 판단과 책임은 사용자 본인에게 있습니다.',
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -681,7 +676,65 @@ class _DashboardPageState extends State<DashboardPage>
             ),
           ],
         ),
-      ),
+    );
+  }
+
+  Widget _buildDashboardToolbar(DashboardSummary summary) {
+    return Row(
+      children: [
+        Expanded(child: _buildLiveUpdateBar()),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          icon: const Icon(Icons.help_outline_rounded),
+          tooltip: '상태 설명',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StatusHelpPage()),
+            );
+          },
+        ),
+        const SizedBox(width: 4),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton.filledTonal(
+              icon: const Icon(
+                Icons.bolt_rounded,
+                color: Color(0xFFF59E0B),
+              ),
+              tooltip: '공격 후보',
+              onPressed: () {
+                setState(() {
+                  _recentAttackTicker = null;
+                });
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AttackListPage(
+                      signals: summary.topSignals,
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (_recentAttackTicker != null)
+              Positioned(
+                right: 3,
+                top: 3,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFEF4444),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -716,7 +769,7 @@ class _DashboardPageState extends State<DashboardPage>
               // [2026-06-12 23:55 KST]
               // 분석중 문구 표시
               Text(
-                'SignalFlow AI 분석중...',
+                'SignalFlow AI 분석 중...',
                 style: TextStyle(
                   color: Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: FontWeight.bold,
@@ -749,14 +802,14 @@ class _DashboardPageState extends State<DashboardPage>
       ),
     );
   }
+
   // Dashboard LIVE / 마지막 업데이트 표시
   // (Dashboard live and last update indicator)
   Widget _buildLiveUpdateBar() {
     final String timeText = _lastUpdatedAt == null
-        ? '--:--:--'
+        ? '--:--'
         : '${_lastUpdatedAt!.hour.toString().padLeft(2, '0')}:'
-        '${_lastUpdatedAt!.minute.toString().padLeft(2, '0')}:'
-        '${_lastUpdatedAt!.second.toString().padLeft(2, '0')}';
+            '${_lastUpdatedAt!.minute.toString().padLeft(2, '0')}';
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -767,9 +820,7 @@ class _DashboardPageState extends State<DashboardPage>
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withValues(alpha: 0.20),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
         ),
       ),
       child: Row(
@@ -796,8 +847,8 @@ class _DashboardPageState extends State<DashboardPage>
                 boxShadow: [
                   BoxShadow(
                     color: (_isOfflineMode
-                        ? const Color(0xFFF59E0B)
-                        : const Color(0xFF22C55E))
+                            ? const Color(0xFFF59E0B)
+                            : const Color(0xFF22C55E))
                         .withValues(alpha: 0.45),
                     blurRadius: 10,
                     spreadRadius: 1,
@@ -819,7 +870,7 @@ class _DashboardPageState extends State<DashboardPage>
           ),
           const SizedBox(width: 10),
           Text(
-            'Last Update $timeText',
+            '업데이트 $timeText',
             style: TextStyle(
               color: Theme.of(context).textTheme.bodySmall?.color,
               fontSize: 12,

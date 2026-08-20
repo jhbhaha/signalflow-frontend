@@ -1,7 +1,3 @@
-// File: analysis_screen.dart (분석 화면)
-// [Added by ChatGPT | 2026-04-13 19:05 KST]
-// Insert Location: lib/screens/analysis_screen.dart 새 파일 전체 생성
-
 import 'package:flutter/material.dart';
 
 import '../models/analysis_response.dart';
@@ -16,9 +12,9 @@ class AnalysisScreen extends StatefulWidget {
 
 class _AnalysisScreenState extends State<AnalysisScreen> {
   final TextEditingController _tickerController =
-  TextEditingController(text: '071050');
+      TextEditingController(text: '071050');
   final TextEditingController _stockNameController =
-  TextEditingController(text: '한국금융지주');
+      TextEditingController(text: '\uD55C\uAD6D\uAE08\uC735\uC9C0\uC8FC');
 
   AnalysisResponse? _result;
   bool _isLoading = false;
@@ -45,211 +41,549 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
         stockName: _stockNameController.text.trim(),
       );
 
+      if (!mounted) return;
+
       setState(() {
         _result = result;
       });
-    } catch (e) {
+    } catch (error) {
+      if (!mounted) return;
+
       setState(() {
-        _error = e.toString();
+        _error = error.toString();
         _result = null;
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Color _statusColor(String status) {
-    if (status.contains('RISK')) return Colors.red;
-    if (status.contains('ATTACK')) return Colors.green;
-    if (status.contains('WATCH')) return Colors.orange;
-    return Colors.blueGrey;
+    if (status.contains('RISK')) return const Color(0xFF2563EB);
+    if (status.contains('ATTACK')) return const Color(0xFFDC2626);
+    if (status.contains('WATCH')) return const Color(0xFFD97706);
+    return const Color(0xFF64748B);
+  }
+
+  String _statusLabel(String status) {
+    if (status.contains('ATTACK')) return '\uACF5\uACA9';
+    if (status.contains('WATCH')) return '\uAD00\uCC30';
+    if (status.contains('RISK')) return '\uC704\uD5D8';
+    return '\uB300\uAE30';
+  }
+
+  Widget _buildInputCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '\uC218\uB3D9 \uC885\uBAA9 \uBD84\uC11D',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '\uC885\uBAA9 \uCF54\uB4DC\uC640 \uC885\uBAA9\uBA85\uC744 \uC785\uB825\uD574 SignalFlow \uBD84\uC11D\uC744 \uC2E4\uD589\uD569\uB2C8\uB2E4.',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _tickerController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: '\uC885\uBAA9 \uCF54\uB4DC',
+              prefixIcon: const Icon(Icons.tag_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _stockNameController,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) {
+              if (!_isLoading) _runAnalysis();
+            },
+            decoration: InputDecoration(
+              labelText: '\uC885\uBAA9\uBA85',
+              prefixIcon: const Icon(Icons.business_rounded),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: _isLoading ? null : _runAnalysis,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.analytics_rounded),
+              label: Text(
+                _isLoading
+                    ? '\uBD84\uC11D \uC911'
+                    : '\uBD84\uC11D \uC2E4\uD589',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInfoCard({
     required String title,
     required Widget child,
   }) {
-    return Card(
+    return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 82,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildBulletList(List<String> items) {
     if (items.isEmpty) {
-      return const Text('없음');
+      return _buildEmptyText(
+          '\uD45C\uC2DC\uD560 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
     }
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .map(
-            (item) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text('• $item'),
+      children: items.asMap().entries.map((entry) {
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${entry.key + 1}',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  entry.value,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildEmptyText(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
         ),
-      )
-          .toList(),
+      ),
+    );
+  }
+
+  Widget _buildResultHero(AnalysisResponse result) {
+    final status = result.finalStatus ?? result.status;
+    final statusColor = _statusColor(status);
+    final score = result.finalScore ?? result.statusScore;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: statusColor.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Icon(
+              Icons.show_chart_rounded,
+              color: statusColor,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  result.stockName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  result.ticker,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                _statusLabel(status),
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '$score',
+                style: TextStyle(
+                  color: statusColor,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildResultView(AnalysisResponse result) {
-    final Color statusColor = _statusColor(result.finalStatus ?? result.status);
+    final status = result.finalStatus ?? result.status;
+    final statusColor = _statusColor(status);
 
     return Column(
       children: [
+        _buildResultHero(result),
         _buildInfoCard(
-          title: '기본 정보',
+          title: '\uAE30\uBCF8 \uC815\uBCF4',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('종목명: ${result.stockName}'),
-              Text('종목코드: ${result.ticker}'),
-              Text('기준일: ${result.asofDate}'),
-              Text('종가: ${result.close.toStringAsFixed(0)}'),
+              _buildInfoRow('\uC885\uBAA9\uBA85', result.stockName),
+              _buildInfoRow('\uC885\uBAA9\uCF54\uB4DC', result.ticker),
+              _buildInfoRow('\uAE30\uC900\uC77C', result.asofDate),
+              _buildInfoRow('\uC885\uAC00', result.close.toStringAsFixed(0)),
             ],
           ),
         ),
         _buildInfoCard(
-          title: '상태 요약',
+          title: '\uC0C1\uD0DC \uC694\uC57D',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statusColor),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '기본 상태: ${result.status} (${result.statusLabelKo})',
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text('기본 점수: ${result.statusScore}'),
-                    Text('최종 상태: ${result.finalStatus ?? result.status}'),
-                    Text('최종 점수: ${result.finalScore ?? result.statusScore}'),
-                  ],
-                ),
+              _buildInfoRow(
+                '\uAE30\uBCF8 \uC0C1\uD0DC',
+                '${_statusLabel(result.status)} (${result.statusLabelKo})',
+                valueColor: statusColor,
               ),
-              const SizedBox(height: 12),
-              Text('한 줄 요약: ${result.summary}'),
-              const SizedBox(height: 8),
-              Text('행동 가이드: ${result.actionGuide}'),
-              if (result.etfReason != null) ...[
-                const SizedBox(height: 8),
-                Text('ETF 반영 사유: ${result.etfReason}'),
-              ],
+              _buildInfoRow(
+                  '\uAE30\uBCF8 \uC810\uC218', '${result.statusScore}'),
+              _buildInfoRow(
+                '\uCD5C\uC885 \uC0C1\uD0DC',
+                _statusLabel(status),
+                valueColor: statusColor,
+              ),
+              _buildInfoRow(
+                '\uCD5C\uC885 \uC810\uC218',
+                '${result.finalScore ?? result.statusScore}',
+                valueColor: statusColor,
+              ),
+              const SizedBox(height: 6),
+              _buildInfoRow('\uC694\uC57D', result.summary),
+              _buildInfoRow('\uAC00\uC774\uB4DC', result.actionGuide),
+              if (result.etfReason != null)
+                _buildInfoRow('ETF', result.etfReason!),
             ],
           ),
         ),
         _buildInfoCard(
-          title: '판단 근거',
+          title: '\uD310\uB2E8 \uADFC\uAC70',
           child: _buildBulletList(result.reasons),
         ),
         _buildInfoCard(
-          title: '위험 요소',
+          title: '\uC704\uD5D8 \uC694\uC18C',
           child: _buildBulletList(result.riskFlags),
         ),
         _buildInfoCard(
-          title: 'ETF 추천 결과',
+          title: 'ETF \uCD94\uCC9C \uACB0\uACFC',
           child: result.etfRecommendations.isEmpty
-              ? const Text('ETF 추천 결과 없음')
+              ? _buildEmptyText(
+                  'ETF \uCD94\uCC9C \uACB0\uACFC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.')
               : Column(
-            children: result.etfRecommendations.map((etf) {
-              return Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ETF 코드: ${etf.etfCode}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                  children: result.etfRecommendations.map((etf) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color:
+                              const Color(0xFF2563EB).withValues(alpha: 0.18),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text('상관계수: ${etf.correlation.toStringAsFixed(3)}'),
-                    Text(
-                      '상승 동조 확률: ${(etf.upProbability * 100).toStringAsFixed(1)}%',
-                    ),
-                    Text(
-                      '하락 동조 확률: ${(etf.downProbability * 100).toStringAsFixed(1)}%',
-                    ),
-                  ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            etf.etfCode,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _buildInfoRow(
+                            '\uC0C1\uAD00',
+                            etf.correlation.toStringAsFixed(3),
+                          ),
+                          _buildInfoRow(
+                            '\uC0C1\uC2B9',
+                            '${(etf.upProbability * 100).toStringAsFixed(1)}%',
+                          ),
+                          _buildInfoRow(
+                            '\uD558\uB77D',
+                            '${(etf.downProbability * 100).toStringAsFixed(1)}%',
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }).toList(),
-          ),
         ),
         _buildInfoCard(
-          title: '알림',
+          title: '\uC54C\uB9BC',
           child: result.alerts.isEmpty
-              ? const Text('발생한 알림 없음')
+              ? _buildEmptyText(
+                  '\uBC1C\uC0DD\uD55C \uC54C\uB9BC\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.')
               : Column(
-            children: result.alerts.map((alert) {
-              return Container(
-                width: double.infinity,
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      alert.subject,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
+                  children: result.alerts.map((alert) {
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(alert.body),
-                  ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            alert.subject,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(alert.body),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }).toList(),
-          ),
         ),
         _buildInfoCard(
-          title: '원본 메시지',
-          child: Text(result.message),
+          title: '\uC6D0\uBCF8 \uBA54\uC2DC\uC9C0',
+          child: Text(
+            result.message,
+            style: const TextStyle(height: 1.45),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorCard() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFDC2626)),
+      ),
+      child: Text(
+        _error!,
+        style: const TextStyle(
+          color: Color(0xFFDC2626),
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIdleState() {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.manage_search_rounded,
+              color: Theme.of(context).colorScheme.primary,
+              size: 42,
+            ),
+            const SizedBox(height: 14),
+            Text(
+              '\uC885\uBAA9\uC744 \uC785\uB825\uD574 \uBD84\uC11D\uD574\uBCF4\uC138\uC694',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '\uC885\uBAA9 \uCF54\uB4DC\uC640 \uC885\uBAA9\uBA85\uC744 \uC785\uB825\uD55C \uB4A4 \uBD84\uC11D\uC744 \uC2E4\uD589\uD558\uC138\uC694.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 12,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -257,66 +591,20 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('주식 분석'),
+        title: const Text('\uC8FC\uC2DD \uBD84\uC11D'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              TextField(
-                controller: _tickerController,
-                decoration: const InputDecoration(
-                  labelText: '종목 코드',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _stockNameController,
-                decoration: const InputDecoration(
-                  labelText: '종목명',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _runAnalysis,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('분석 실행'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_error != null)
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red),
-                  ),
-                  child: Text(
-                    _error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                ),
-              Expanded(
-                child: _result == null
-                    ? const Center(
-                  child: Text('종목 코드와 종목명을 입력한 뒤 분석 실행을 누르세요.'),
-                )
-                    : SingleChildScrollView(
-                  child: _buildResultView(_result!),
-                ),
-              ),
-            ],
-          ),
+          children: [
+            _buildInputCard(),
+            const SizedBox(height: 16),
+            if (_error != null) _buildErrorCard(),
+            if (_result == null)
+              _buildIdleState()
+            else
+              _buildResultView(_result!),
+          ],
         ),
       ),
     );

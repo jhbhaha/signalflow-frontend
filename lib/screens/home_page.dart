@@ -1,19 +1,14 @@
-// File: home_page.dart (홈 화면)
-// Last Modified: 2026-05-12 12:10 KST
-// Insert Location: G:\stockmarket_frontend\lib\screens\home_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-import 'dashboard_page.dart';
-import 'search_page.dart';
-import 'watchlist_page.dart';
-import 'attack_page.dart';
-// [2026-05-12 12:10 KST]
-// 상태 변화 히스토리 화면 추가 (Add signal history page)
-import 'signal_history_page.dart';
-import 'notification_center_page.dart';
 import '../services/api_service.dart';
+import 'attack_page.dart';
+import 'analysis_page.dart';
+import 'dashboard_page.dart';
+import 'notification_center_page.dart';
+import 'signal_history_page.dart';
+import 'watchlist_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,108 +18,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-  // [2026-06-18 08:00 KST]
-  // 뒤로가기 두 번 입력 시 앱 종료 처리용 시간 저장
-  DateTime? _lastBackPressedAt;
-  // [2026-05-12 14:30 KST]
-  // 읽지 않은 알림 개수 상태 추가 (Add unread notification count state)
   final ApiService _apiService = ApiService();
+
+  int _currentIndex = 0;
   int _unreadNotificationCount = 0;
+  DateTime? _lastBackPressedAt;
 
-  // [2026-05-12 12:10 KST]
-  // 히스토리 탭 index 4 추가 (Add history tab index 4)
-  Widget _buildCurrentPage() {
-    switch (_currentIndex) {
-      case 0:
-        return const DashboardPage();
-      case 1:
-        return const SearchPage();
-      case 2:
-        return const WatchlistPage();
-      case 3:
-        return const AttackPage();
-      case 4:
-        return const SignalHistoryPage();
-      default:
-        return const DashboardPage();
-    }
+  static const List<Widget> _pages = [
+    DashboardPage(),
+    AnalysisPage(),
+    WatchlistPage(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadNotificationCount();
   }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required IconData activeIcon,
-    required String label,
-  }) {
-    final bool isActive = _currentIndex == index;
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
-    final Color activeColor = const Color(0xFF3B82F6);
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: EdgeInsets.symmetric(
-          horizontal: isActive ? 14 : 10,
-          vertical: 8,
-        ),
-        decoration: BoxDecoration(
-          color: isActive
-              ? activeColor.withValues(alpha: 0.16)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: isActive
-              ? [
-            BoxShadow(
-              color: activeColor.withValues(alpha: 0.25),
-              blurRadius: 14,
-              spreadRadius: 1,
-            ),
-          ]
-              : [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isActive ? activeIcon : icon,
-              color: isActive
-                  ? activeColor
-                  : Theme.of(context).textTheme.bodyMedium?.color,
-              size: 22,
-            ),
-            if (isActive) ...[
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: isDark ? const Color(0xFFBFDBFE) : activeColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  // File: home_page.dart
-// Insert Location: lib/screens/home_page.dart 안의 기존 build() 메서드 전체 교체
 
   @override
   Widget build(BuildContext context) {
-    // [2026-06-18 08:00 KST]
-    // 하단 탭에서는 뒤로가기 시 대시보드로 이동하고,
-    // 대시보드에서 한 번 더 누르면 앱 종료
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -158,19 +71,39 @@ class _HomePageState extends State<HomePage> {
         );
       },
       child: Scaffold(
-        // [2026-05-12 14:20 KST]
-        // 알림 센터 이동 버튼 추가 (Add notification center navigation button)
-
-        // [2026-05-12 14:30 KST]
-        // 읽지 않은 알림 Badge 표시 추가 (Add unread notification badge)
         appBar: AppBar(
-          title: const Text('SignalFlow'),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SvgPicture.asset(
+                'assets/images/signalflow_logo.svg',
+                width: 24,
+                height: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'SignalFlow',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          centerTitle: false,
           actions: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Badge(
+                isLabelVisible: _unreadNotificationCount > 0,
+                label: Text(
+                  _unreadNotificationCount > 99
+                      ? '99+'
+                      : _unreadNotificationCount.toString(),
+                ),
+                child: IconButton(
+                  tooltip: '알림',
+                  icon: const Icon(Icons.notifications_none_rounded),
                   onPressed: () async {
                     await Navigator.push(
                       context,
@@ -182,99 +115,52 @@ class _HomePageState extends State<HomePage> {
                     await _loadUnreadNotificationCount();
                   },
                 ),
-                if (_unreadNotificationCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 18,
-                        minHeight: 18,
-                      ),
-                      child: Text(
-                        _unreadNotificationCount > 99
-                            ? '99+'
-                            : _unreadNotificationCount.toString(),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
           ],
         ),
-        body: _buildCurrentPage(),
+        body: IndexedStack(
+          index: _currentIndex > 2 ? 0 : _currentIndex,
+          children: _pages,
+        ),
         bottomNavigationBar: SafeArea(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: Theme.of(context)
-                    .dividerColor
-                    .withValues(alpha: 0.20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: Theme.of(context).brightness == Brightness.dark
-                        ? 0.35
-                        : 0.10,
-                  ),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  index: 0,
-                  icon: Icons.dashboard_outlined,
-                  activeIcon: Icons.dashboard,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: NavigationBar(
+              selectedIndex: _currentIndex,
+              height: 68,
+              labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+              onDestinationSelected: (index) {
+                if (index == 3) {
+                  _showMoreMenu();
+                  return;
+                }
+
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
                   label: '대시보드',
                 ),
-                _buildNavItem(
-                  index: 1,
-                  icon: Icons.search,
-                  activeIcon: Icons.search,
-                  label: '검색',
+                NavigationDestination(
+                  icon: Icon(Icons.analytics_outlined),
+                  selectedIcon: Icon(Icons.analytics_rounded),
+                  label: '분석',
                 ),
-                _buildNavItem(
-                  index: 2,
-                  icon: Icons.star_outline,
-                  activeIcon: Icons.star,
-                  label: '관심',
+                NavigationDestination(
+                  icon: Icon(Icons.star_outline_rounded),
+                  selectedIcon: Icon(Icons.star_rounded),
+                  label: '관심종목',
                 ),
-                _buildNavItem(
-                  index: 3,
-                  icon: Icons.flash_on_outlined,
-                  activeIcon: Icons.flash_on,
-                  label: '공격',
-                ),
-                // [2026-05-12 12:10 KST]
-                // 상태 변화 히스토리 탭 추가 (Add signal history tab)
-                _buildNavItem(
-                  index: 4,
-                  icon: Icons.history_outlined,
-                  activeIcon: Icons.history,
-                  label: '히스토리',
+                NavigationDestination(
+                  icon: Icon(Icons.more_horiz_rounded),
+                  selectedIcon: Icon(Icons.more_rounded),
+                  label: '더보기',
                 ),
               ],
             ),
@@ -284,12 +170,57 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // [2026-05-12 14:30 KST]
-  // 홈 진입 시 읽지 않은 알림 개수 조회 (Fetch unread notification count when home page starts)
-  @override
-  void initState() {
-    super.initState();
-    _loadUnreadNotificationCount();
+  void _showMoreMenu() {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.flash_on_rounded,
+                    color: Color(0xFFF59E0B),
+                  ),
+                  title: const Text('공격 후보'),
+                  subtitle: const Text('강한 신호가 나온 종목을 확인합니다.'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AttackPage(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.history_rounded),
+                  title: const Text('히스토리'),
+                  subtitle: const Text('신호 변화 이력을 확인합니다.'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SignalHistoryPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadUnreadNotificationCount() async {
@@ -304,8 +235,7 @@ class _HomePageState extends State<HomePage> {
         _unreadNotificationCount = count;
       });
     } catch (error) {
-      print('Unread notification count load failed: $error');
+      debugPrint('Unread notification count load failed: $error');
     }
   }
-
 }

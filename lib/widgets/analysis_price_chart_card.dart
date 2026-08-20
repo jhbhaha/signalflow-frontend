@@ -137,6 +137,26 @@ class AnalysisPriceChartCard extends StatelessWidget {
                           showTitles: true,
                           reservedSize: 60,
                           getTitlesWidget: (value, meta) {
+                            // [2026-08-20]
+                            // fl_chart는 일정 간격 눈금과 별개로 축의 min/max
+                            // 원값을 항상 별도 라벨로 추가 삽입한다. minY/maxY가
+                            // 실제 최저/최고가에 임의의 패딩(0.98/1.02)을 곱한
+                            // 값이라 인접한 정간격 눈금과 겹쳐 보이는 문제가
+                            // 있었으므로, 축의 양 끝(min/max) 라벨은 숨기고
+                            // 정간격 눈금만 표시한다.
+                            // (fl_chart always injects the raw axis min/max as
+                            // extra labels in addition to the regular interval
+                            // ticks, which visually collided with the nearby
+                            // rounded tick. Hide those edge labels so only the
+                            // evenly spaced ticks remain.)
+                            final isEdgeValue =
+                                (value - meta.min).abs() < 0.0001 ||
+                                    (value - meta.max).abs() < 0.0001;
+
+                            if (isEdgeValue) {
+                              return const SizedBox.shrink();
+                            }
+
                             return Text(
                               formatPrice(value),
                               style: TextStyle(

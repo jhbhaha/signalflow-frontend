@@ -126,6 +126,7 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
       });
     }
   }
+
   String _formatNumber(num? value) {
     if (value == null) {
       return '-';
@@ -287,22 +288,22 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text('${widget.stockName} 재무분석'),
-          bottom: TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabs: [
-              Tab(text: '요약'),
-              Tab(text: '실적'),
-              Tab(text: '안정성'),
-              Tab(text: '수익성'),
-              Tab(text: '투자지표'),
-              Tab(text: '질문'),
-            ],
-          ),
+      appBar: AppBar(
+        title: Text('${widget.stockName} 재무분석'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: '요약'),
+            Tab(text: '실적'),
+            Tab(text: '안정성'),
+            Tab(text: '수익성'),
+            Tab(text: '투자지표'),
+            Tab(text: '질문'),
+          ],
         ),
-        body: _buildBody(),
+      ),
+      body: _buildBody(),
     );
   }
 
@@ -316,7 +317,7 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
     if (_error != null) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Text(_error!),
         ),
       );
@@ -348,38 +349,18 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
   }
 
   Widget _buildSummaryTab(
-      FinancialSummary summary,
-      FinancialAnalysis analysis,
-      ) {
+    FinancialSummary summary,
+    FinancialAnalysis analysis,
+  ) {
     final gradeColor = _gradeColor(analysis.financialGrade);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              children: [
-                Text(
-                  analysis.financialGrade,
-                  style: TextStyle(
-                    fontSize: 56,
-                    fontWeight: FontWeight.bold,
-                    color: gradeColor,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '재무점수 ${analysis.financialScore}점',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
+        _buildGradeHero(
+          summary: summary,
+          analysis: analysis,
+          color: gradeColor,
         ),
         const SizedBox(height: 12),
         _buildOpinionCard(
@@ -408,9 +389,9 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
   // [2026-06-15 14:10 KST]
   // 실적추이 탭
   Widget _buildPerformanceTab(
-      FinancialSummary summary,
-      CompanyTrend? trend,
-      ) {
+    FinancialSummary summary,
+    CompanyTrend? trend,
+  ) {
     // [2026-06-15 15:05 KST]
     // 실적 탭 진입 전에는 API를 호출하지 않음
     if (_isTrendLoading) {
@@ -449,11 +430,9 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
           icon: Icons.bar_chart,
           color: const Color(0xFF3B82F6),
         ),
-
         const SizedBox(height: 12),
-
         ...trend.items.map(
-              (item) => Card(
+          (item) => Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -467,7 +446,6 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
                     ),
                   ),
                   const SizedBox(height: 12),
-
                   Text(
                     '매출액 : ${_formatNumber(item.revenue)}',
                   ),
@@ -482,25 +460,21 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
             ),
           ),
         ),
-
         const SizedBox(height: 12),
-
         _buildMetricCard(
           title: '매출 성장률',
           value:
-          '${trend.growth.revenueGrowthRate?.toStringAsFixed(2) ?? '-'}%',
+              '${trend.growth.revenueGrowthRate?.toStringAsFixed(2) ?? '-'}%',
         ),
-
         _buildMetricCard(
           title: '영업이익 성장률',
           value:
-          '${trend.growth.operatingIncomeGrowthRate?.toStringAsFixed(2) ?? '-'}%',
+              '${trend.growth.operatingIncomeGrowthRate?.toStringAsFixed(2) ?? '-'}%',
         ),
-
         _buildMetricCard(
           title: '순이익 성장률',
           value:
-          '${trend.growth.netIncomeGrowthRate?.toStringAsFixed(2) ?? '-'}%',
+              '${trend.growth.netIncomeGrowthRate?.toStringAsFixed(2) ?? '-'}%',
         ),
       ],
     );
@@ -517,9 +491,7 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
           title: '안정성 해석',
           content: _stabilityOpinion(summary),
           icon: Icons.health_and_safety,
-          color: isRisk
-              ? const Color(0xFFEF4444)
-              : const Color(0xFF22C55E),
+          color: isRisk ? const Color(0xFFEF4444) : const Color(0xFF22C55E),
         ),
         const SizedBox(height: 12),
         _buildMetricCard(
@@ -604,9 +576,9 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
   }
 
   Widget _buildQuestionTab(
-      FinancialSummary summary,
-      FinancialAnalysis analysis,
-      ) {
+    FinancialSummary summary,
+    FinancialAnalysis analysis,
+  ) {
     final questions = [
       '최근 실적은 좋은가요?',
       '부채비율은 위험한가요?',
@@ -651,47 +623,154 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
     );
   }
 
+  Widget _buildGradeHero({
+    required FinancialSummary summary,
+    required FinancialAnalysis analysis,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Text(
+              analysis.financialGrade,
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '\uC7AC\uBB34 \uC885\uD569 \uD3C9\uAC00',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '\uC810\uC218 ${analysis.financialScore}\uC810',
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildSmallMetric(
+                      '\uB9E4\uCD9C',
+                      _formatNumber(summary.revenue),
+                    ),
+                    _buildSmallMetric(
+                      'ROE',
+                      _formatPercent(summary.roe),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallMetric(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).dividerColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Widget _buildOpinionCard({
     required String title,
     required String content,
     required IconData icon,
     required Color color,
   }) {
-    return Card(
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              icon,
-              color: color,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(999),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    content,
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                      height: 1.45,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  content,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -700,15 +779,38 @@ class _CompanyAnalysisPageState extends State<CompanyAnalysisPage>
     required String title,
     required String value,
   }) {
-    return Card(
-      child: ListTile(
-        title: Text(title),
-        trailing: Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.18),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }

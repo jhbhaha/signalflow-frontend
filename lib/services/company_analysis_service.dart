@@ -11,8 +11,7 @@ import '../models/company_trend.dart';
 import 'package:flutter/foundation.dart';
 
 class CompanyAnalysisService {
-  static const String baseUrl =
-      'https://stockmarket-backend-nwkm.onrender.com';
+  static const String baseUrl = 'http://43.200.8.46';
 
   Future<CompanyAnalysis> fetchCompanyAnalysis({
     required String stockCode,

@@ -1,7 +1,3 @@
-// File: signal_history_page.dart (상태 변화 히스토리 화면)
-// Last Modified: 2026-06-13 15:55 KST (작성자: ChatGPT)
-// Insert Location: lib/screens/signal_history_page.dart 전체 교체
-
 import 'package:flutter/material.dart';
 
 import '../models/signal_history_item.dart';
@@ -31,171 +27,146 @@ class _SignalHistoryPageState extends State<SignalHistoryPage> {
     });
   }
 
-  // [Modified by ChatGPT | 2026-06-13 15:55 KST]
-  // ATTACK_NORMAL, WATCH_WEAK 같은 세부 상태도 같은 계열 색상으로 처리
   Color _statusColor(String status) {
     final upper = status.toUpperCase();
-
-    if (upper.startsWith('ATTACK')) {
-      return const Color(0xFFEF4444);
-    }
-
-    if (upper.startsWith('WATCH')) {
-      return const Color(0xFFF59E0B);
-    }
-
-    if (upper.startsWith('RISK')) {
-      return const Color(0xFF3B82F6);
-    }
-
-    if (upper.startsWith('WAIT')) {
-      return const Color(0xFF64748B);
-    }
-
+    if (upper.startsWith('ATTACK')) return const Color(0xFFDC2626);
+    if (upper.startsWith('WATCH')) return const Color(0xFFD97706);
+    if (upper == 'RISK') return const Color(0xFF2563EB);
     return const Color(0xFF64748B);
   }
 
+  String _displayStatusName(String status) {
+    final upper = status.toUpperCase();
+    if (upper.startsWith('ATTACK')) return '\uACF5\uACA9';
+    if (upper.startsWith('WATCH')) return '\uAD00\uCC30';
+    if (upper == 'RISK') return '\uC704\uD5D8';
+    if (upper == 'WAIT') return '\uB300\uAE30';
+    if (upper == 'NONE' || upper == 'NEW') return '\uC2E0\uADDC';
+    return status;
+  }
+
   String _displayPreviousStatus(String? status) {
-    if (status == null || status.isEmpty || status == 'None') {
-      return 'NEW';
-    }
+    if (status == null || status.isEmpty) return '\uC2E0\uADDC';
     return _displayStatusName(status);
   }
 
-  // [Added by ChatGPT | 2026-06-13 15:55 KST]
-  // 사용자에게 보이는 상태명을 한글 중심으로 정리
-  String _displayStatusName(String status) {
-    final upper = status.toUpperCase();
-
-    switch (upper) {
-      case 'ATTACK_STRONG':
-        return '강한 공격';
-      case 'ATTACK_NORMAL':
-        return '공격';
-      case 'WATCH_STRONG':
-        return '강한 관찰';
-      case 'WATCH_WEAK':
-        return '약한 관찰';
-      case 'RISK':
-        return '위험';
-      case 'WAIT':
-        return '대기';
-      default:
-        return status;
-    }
-  }
-
-  // [Added by ChatGPT | 2026-06-13 15:55 KST]
-  // 현재 API에 상세 근거 필드가 없으므로 상태 기준 설명을 우선 표시
   String _statusMeaning(String status) {
     final upper = status.toUpperCase();
-
     if (upper.startsWith('ATTACK')) {
-      return '장기·중기 흐름과 단기 힘이 비교적 양호한 구간입니다.';
+      return '\uACF5\uACA9 \uC2E0\uD638\uAC00 \uAC15\uD574\uC9C4 \uAD6C\uAC04\uC785\uB2C8\uB2E4.';
     }
-
     if (upper.startsWith('WATCH')) {
-      return '아직 강한 공격 신호는 아니지만 흐름 전환을 관찰할 구간입니다.';
+      return '\uAD00\uCC30\uC774 \uD544\uC694\uD55C \uC2E0\uD638\uAC00 \uAC10\uC9C0\uB41C \uAD6C\uAC04\uC785\uB2C8\uB2E4.';
     }
-
-    if (upper.startsWith('RISK')) {
-      return '흐름이 약해지거나 변동성이 커져 주의가 필요한 구간입니다.';
+    if (upper == 'RISK') {
+      return '\uC704\uD5D8 \uC2E0\uD638\uAC00 \uD655\uB300\uB41C \uAD6C\uAC04\uC785\uB2C8\uB2E4.';
     }
-
-    if (upper.startsWith('WAIT')) {
-      return '뚜렷한 공격 조건이 부족해 대기하는 구간입니다.';
-    }
-
-    return '상태 변화가 기록된 구간입니다.';
+    return '\uC0C1\uD0DC \uBCC0\uD654\uAC00 \uAE30\uB85D\uB41C \uAD6C\uAC04\uC785\uB2C8\uB2E4.';
   }
 
-  Widget _buildSummaryCard(
-      BuildContext context,
-      List<SignalHistoryItem> items,
-      ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+  Widget _buildSummaryCard(List<SignalHistoryItem> items) {
     final latest = items.first;
     final attackCount = items
-        .where((e) => e.currentStatus.toUpperCase().startsWith('ATTACK'))
+        .where((item) => item.currentStatus.toUpperCase().startsWith('ATTACK'))
         .length;
+    final color = _statusColor(latest.currentStatus);
 
-    return Card(
-      color: colorScheme.surfaceContainerHighest,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '최근 상태 요약',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
             ),
-            const SizedBox(height: 12),
-            Text(
-              '${latest.stockName} (${latest.ticker})',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.75),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
+            child: Icon(Icons.timeline_rounded, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatusBadge(
-                  label: _displayStatusName(latest.currentStatus),
-                  color: _statusColor(latest.currentStatus),
-                ),
-                const SizedBox(width: 8),
                 Text(
-                  '점수 ${latest.finalScore}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
+                  '\uCD5C\uADFC \uC0C1\uD0DC \uC694\uC57D',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${latest.stockName} (${latest.ticker})',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              '최근 변화 ${items.length}건 · 공격 전환 ${attackCount}건',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurface.withOpacity(0.65),
-              ),
-            ),
-          ],
-        ),
+          ),
+          _buildChip(
+            label: '\uBCC0\uD654',
+            value: '${items.length}',
+            color: const Color(0xFF2563EB),
+          ),
+          const SizedBox(width: 8),
+          _buildChip(
+            label: '\uACF5\uACA9',
+            value: '$attackCount',
+            color: const Color(0xFFDC2626),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHistoryCard(
-      BuildContext context,
-      SignalHistoryItem item,
-      ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final statusColor = _statusColor(item.currentStatus);
+  Widget _buildHistoryCard(SignalHistoryItem item) {
+    final color = _statusColor(item.currentStatus);
 
-    return Card(
-      color: colorScheme.surface,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
         padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              margin: const EdgeInsets.only(top: 6),
-              decoration: BoxDecoration(
-                color: statusColor,
-                shape: BoxShape.circle,
-              ),
+            Column(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                Container(
+                  width: 2,
+                  height: 46,
+                  margin: const EdgeInsets.only(top: 6),
+                  color: color.withValues(alpha: 0.18),
+                ),
+              ],
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -203,39 +174,61 @@ class _SignalHistoryPageState extends State<SignalHistoryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${item.stockName} (${item.ticker})',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
+                    item.stockName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
-                    '${_displayPreviousStatus(item.previousStatus)} → ${_displayStatusName(item.currentStatus)}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
+                    item.ticker,
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    '${_displayPreviousStatus(item.previousStatus)} \u2192 ${_displayStatusName(item.currentStatus)}',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     _statusMeaning(item.currentStatus),
-                    style: theme.textTheme.bodySmall?.copyWith(
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                      fontSize: 12,
                       height: 1.4,
-                      color: colorScheme.onSurface.withOpacity(0.7),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                      _ScoreChip(score: item.finalScore),
+                      _buildChip(
+                        label: '\uC810\uC218',
+                        value: '${item.finalScore}',
+                        color: color,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           item.timestamp,
                           textAlign: TextAlign.right,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurface.withOpacity(0.55),
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -250,118 +243,88 @@ class _SignalHistoryPageState extends State<SignalHistoryPage> {
     );
   }
 
+  Widget _buildChip({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Theme.of(context).textTheme.bodyMedium?.color,
+            fontSize: 14,
+            height: 1.45,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      appBar: AppBar(
+        title: const Text('신호 히스토리'),
+        centerTitle: false,
+      ),
       body: FutureBuilder<List<SignalHistoryItem>>(
         future: _historyFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                '히스토리를 불러오지 못했습니다.\n${snapshot.error}',
-                textAlign: TextAlign.center,
-              ),
+            return _buildEmptyState(
+              '\uD788\uC2A4\uD1A0\uB9AC\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.\n${snapshot.error}',
             );
           }
 
-          final items = snapshot.data ?? [];
+          final items = snapshot.data ?? <SignalHistoryItem>[];
 
           if (items.isEmpty) {
-            return const Center(
-              child: Text('아직 상태 변화 히스토리가 없습니다.'),
+            return _buildEmptyState(
+              '\uC544\uC9C1 \uC0C1\uD0DC \uBCC0\uD654 \uD788\uC2A4\uD1A0\uB9AC\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.',
             );
           }
 
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
               itemCount: items.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _buildSummaryCard(context, items);
-                }
-
-                final item = items[index - 1];
-                return _buildHistoryCard(context, item);
+                if (index == 0) return _buildSummaryCard(items);
+                return _buildHistoryCard(items[index - 1]);
               },
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String label;
-  final Color color;
-
-  const _StatusBadge({
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-}
-
-class _ScoreChip extends StatelessWidget {
-  final num score;
-
-  const _ScoreChip({
-    required this.score,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 9,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '점수 $score',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: colorScheme.onSurface.withOpacity(0.75),
-        ),
       ),
     );
   }

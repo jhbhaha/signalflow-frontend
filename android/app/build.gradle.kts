@@ -1,6 +1,7 @@
 // File: build.gradle.kts (Android 앱 Gradle 설정)
-// Last Modified: 2026-06-03 22:05 KST (작성자: ChatGPT)
-// Insert Location: G:\stockmarket_frontend\android\app\build.gradle.kts 전체 교체
+// Last Modified: 2026-07-22 07:41 KST
+// Insert Location: G:\03. flutter\stockmarket_frontend\android\app\build.gradle.kts 전체 교체
+// [2026-07-22 07:41 KST] Google Play Android 16(API 36) 정책 대응
 
 import java.util.Properties
 import java.io.FileInputStream
@@ -21,7 +22,10 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.signalflow.stock"
-    compileSdk = flutter.compileSdkVersion
+    // [2026-07-22 07:41 KST]
+    // Google Play Android 16(API 36) 정책 대응
+    compileSdk = 36
+
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -40,7 +44,10 @@ android {
     defaultConfig {
         applicationId = "com.signalflow.stock"
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // [2026-07-22 07:41 KST]
+        // Google Play Android 16(API 36) 정책 대응
+        targetSdk = 36
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

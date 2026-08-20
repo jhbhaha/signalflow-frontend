@@ -1,14 +1,10 @@
-// File: watchlist_page.dart (관심종목 화면)
-// [2026-05-08 18:40 KST]
-// SignalFlow 관심종목 페이지 UI 적용 (Apply SignalFlow watchlist page UI)
-// Insert Location: G:\stockmarket_frontend\lib\screens\watchlist_page.dart 전체 교체
-
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
+
 import '../models/analysis_response.dart';
+import '../models/signal_history_item.dart';
 import '../models/watch_item.dart';
 import '../services/api_service.dart';
-import '../models/signal_history_item.dart';
 import 'stock_detail_page.dart';
 
 class WatchlistPage extends StatefulWidget {
@@ -20,155 +16,115 @@ class WatchlistPage extends StatefulWidget {
 
 class _WatchlistPageState extends State<WatchlistPage> {
   final ApiService _apiService = ApiService();
+  final Map<String, List<SignalHistoryItem>> _signalHistoryCache = {};
 
   List<WatchItem> _watchItems = <WatchItem>[];
   List<AnalysisResponse> _watchResults = <AnalysisResponse>[];
-  // 종목별 상태 변화 이력 캐시
-  // (Signal history cache by ticker)
-  final Map<String, List<SignalHistoryItem>> _signalHistoryCache = {};
 
-  // 상태 필터 탭 (Status filter tab)
   String _selectedFilter = 'ALL';
-
-  // 관심종목 정렬 방식
-  // (Watchlist sort mode)
   String _selectedSort = 'SCORE';
-
   bool _isLoading = false;
   String? _errorMessage;
 
-  // [2026-06-03 21:35 KST]
-  // 관심종목 화면 첫 진입 시 목록을 먼저 표시하고, 분석은 뒤에서 실행 (Show saved watchlist first, then run analysis in background)
   @override
   void initState() {
     super.initState();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-
-      await _loadData();
-
-      try {
-        await _apiService.runWatchlistAnalysis();
-
-        if (mounted) {
-          await _loadData();
-        }
-      } catch (error) {
-        debugPrint('watchlist background analysis failed: $error');
-      }
-    });
+    _loadWatchlist();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  // 종목별 상태 변화 이력 미리 불러오기
-  // (Preload signal history by ticker)
   Future<void> _loadSignalHistory(String ticker) async {
-    if (_signalHistoryCache.containsKey(ticker)) {
-      return;
-    }
+    if (_signalHistoryCache.containsKey(ticker)) return;
 
     try {
-      final items = await _apiService.fetchSignalHistoryByTicker(
+      final history = await _apiService.fetchSignalHistoryByTicker(
         ticker: ticker,
       );
+      if (!mounted) return;
 
-      _signalHistoryCache[ticker] = items;
-    } catch (_) {}
+      setState(() {
+        _signalHistoryCache[ticker] = history;
+      });
+    } catch (_) {
+      _signalHistoryCache[ticker] = <SignalHistoryItem>[];
+    }
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadWatchlist() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // [2026-05-09 09:40 KST]
-      // 관심종목 목록은 반드시 먼저 표시하고, 분석 실패는 별도로 처리 (Show watchlist even if analysis fails)
       final List<WatchItem> items = await _apiService.fetchWatchlistItems();
-
       List<AnalysisResponse> results = <AnalysisResponse>[];
 
       try {
         results = await _apiService.fetchWatchlistAnalysis();
-      } catch (analysisError) {
-        debugPrint('watchlist analysis load failed: $analysisError');
-
+      } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('최근 분석 결과를 불러오지 못했습니다. 관심종목 목록은 표시됩니다.'),
+              content: Text(
+                '\uCD5C\uADFC \uBD84\uC11D \uACB0\uACFC\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uAD00\uC2EC\uC885\uBAA9 \uBAA9\uB85D\uC740 \uD45C\uC2DC\uB429\uB2C8\uB2E4.',
+              ),
             ),
           );
         }
       }
-
-      await Future.wait(
-        items.map((item) => _loadSignalHistory(item.ticker)),
-      );
 
       if (!mounted) return;
 
       setState(() {
         _watchItems = items;
         _watchResults = results;
-
-        _watchItems.sort((a, b) {
-          final aResult = _watchResults.firstWhere(
-                (r) => r.ticker == a.ticker,
-            orElse: () => AnalysisResponse.empty(),
-          );
-          final bResult = _watchResults.firstWhere(
-                (r) => r.ticker == b.ticker,
-            orElse: () => AnalysisResponse.empty(),
-          );
-
-          return _statusPriority(aResult.finalStatus ?? 'WAIT').compareTo(
-            _statusPriority(bResult.finalStatus ?? 'WAIT'),
-          );
-        });
       });
+
+      for (final item in items) {
+        _loadSignalHistory(item.ticker);
+      }
     } catch (error) {
       if (!mounted) return;
-
       setState(() {
-        _errorMessage = '관심종목을 불러오지 못했습니다. $error';
+        _errorMessage =
+            '\uAD00\uC2EC\uC885\uBAA9\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. $error';
       });
     } finally {
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _deleteWatchItem(String ticker) async {
     try {
       await _apiService.deleteWatchlistItem(ticker);
-      await _loadData();
-
       if (!mounted) return;
 
+      setState(() {
+        _watchItems.removeWhere((item) => item.ticker == ticker);
+        _watchResults.removeWhere((item) => item.ticker == ticker);
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('관심종목이 삭제되었습니다.')),
+        const SnackBar(
+          content: Text(
+              '\uAD00\uC2EC\uC885\uBAA9\uC774 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.'),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제에 실패했습니다. $error')),
+        SnackBar(
+          content: Text(
+              '\uC0AD\uC81C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. $error'),
+        ),
       );
     }
   }
 
-  // [2026-05-11 09:30 KST]
-  // 수동 다시 분석 버튼이 캐시 조회가 아니라 실제 분석 실행 후 최신 캐시를 다시 읽도록 수정 (Run watchlist analysis first, then reload the latest cached results)
   Future<void> _reloadAnalysis() async {
     setState(() {
       _isLoading = true;
@@ -177,26 +133,51 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
     try {
       await _apiService.runWatchlistAnalysis();
-      await _loadData();
+      await _loadWatchlist();
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('관심종목 분석을 새로 실행했습니다.')),
+        const SnackBar(
+          content: Text(
+              '\uAD00\uC2EC\uC885\uBAA9 \uBD84\uC11D\uC744 \uC0C8\uB85C \uC2E4\uD589\uD588\uC2B5\uB2C8\uB2E4.'),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
-
       setState(() {
-        _errorMessage = '관심종목 분석 실행에 실패했습니다. $error';
-      });
-    } finally {
-      if (!mounted) return;
-
-      setState(() {
+        _errorMessage =
+            '\uAD00\uC2EC\uC885\uBAA9 \uBD84\uC11D \uC2E4\uD589\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. $error';
         _isLoading = false;
       });
     }
+  }
+
+  AnalysisResponse _analysisFor(String ticker) {
+    return _watchResults.firstWhere(
+      (result) => result.ticker == ticker,
+      orElse: () => AnalysisResponse.empty(),
+    );
+  }
+
+  Color _statusColor(String status) {
+    if (status.startsWith('ATTACK')) return const Color(0xFFDC2626);
+    if (status.startsWith('WATCH')) return const Color(0xFFD97706);
+    if (status == 'RISK') return const Color(0xFF2563EB);
+    return const Color(0xFF64748B);
+  }
+
+  String _statusLabel(String status) {
+    if (status.startsWith('ATTACK')) return '\uACF5\uACA9';
+    if (status.startsWith('WATCH')) return '\uAD00\uCC30';
+    if (status == 'RISK') return '\uC704\uD5D8';
+    return '\uB300\uAE30';
+  }
+
+  IconData _statusIcon(String status) {
+    if (status.startsWith('ATTACK')) return Icons.trending_up_rounded;
+    if (status.startsWith('WATCH')) return Icons.visibility_rounded;
+    if (status == 'RISK') return Icons.warning_amber_rounded;
+    return Icons.hourglass_bottom_rounded;
   }
 
   int _statusPriority(String status) {
@@ -206,15 +187,6 @@ class _WatchlistPageState extends State<WatchlistPage> {
     return 3;
   }
 
-  // 한국 주식 시장 기준 상태 색상 적용
-  // 상승=빨강 / 위험=파랑
-  Color _statusColor(String status) {
-    if (status.startsWith('ATTACK')) return const Color(0xFFEF4444);
-    if (status.startsWith('WATCH')) return const Color(0xFFF59E0B);
-    if (status == 'RISK') return const Color(0xFF3B82F6);
-    return const Color(0xFF64748B);
-  }
-
   List<WatchItem> get _filteredWatchItems {
     List<WatchItem> items;
 
@@ -222,552 +194,448 @@ class _WatchlistPageState extends State<WatchlistPage> {
       items = List<WatchItem>.from(_watchItems);
     } else {
       items = _watchItems.where((item) {
-        final result = _watchResults.firstWhere(
-              (r) => r.ticker == item.ticker,
-          orElse: () => AnalysisResponse.empty(),
-        );
-
-        final status = result.finalStatus ?? 'WAIT';
-
-        if (_selectedFilter == 'ATTACK') {
-          return status.startsWith('ATTACK');
-        }
-
-        if (_selectedFilter == 'WATCH') {
-          return status.startsWith('WATCH');
-        }
-
-        if (_selectedFilter == 'RISK') {
-          return status == 'RISK';
-        }
-
+        final status = _analysisFor(item.ticker).finalStatus ?? 'WAIT';
+        if (_selectedFilter == 'ATTACK') return status.startsWith('ATTACK');
+        if (_selectedFilter == 'WATCH') return status.startsWith('WATCH');
+        if (_selectedFilter == 'RISK') return status == 'RISK';
         return true;
       }).toList();
     }
 
-    // 점수순 정렬
-    // (Sort by final score)
     if (_selectedSort == 'SCORE') {
       items.sort((a, b) {
-        final aResult = _watchResults.firstWhere(
-              (r) => r.ticker == a.ticker,
-          orElse: () => AnalysisResponse.empty(),
-        );
-
-        final bResult = _watchResults.firstWhere(
-              (r) => r.ticker == b.ticker,
-          orElse: () => AnalysisResponse.empty(),
-        );
-
-        return (bResult.finalScore ?? 0)
-            .compareTo(aResult.finalScore ?? 0);
+        final aResult = _analysisFor(a.ticker);
+        final bResult = _analysisFor(b.ticker);
+        final scoreCompare =
+            (bResult.finalScore ?? 0).compareTo(aResult.finalScore ?? 0);
+        if (scoreCompare != 0) return scoreCompare;
+        return _statusPriority(aResult.finalStatus ?? 'WAIT')
+            .compareTo(_statusPriority(bResult.finalStatus ?? 'WAIT'));
       });
-    }
-
-    // 이름순 정렬
-    // (Sort by stock name)
-    if (_selectedSort == 'NAME') {
-      items.sort(
-            (a, b) => a.stockName.compareTo(b.stockName),
-      );
+    } else {
+      items.sort((a, b) => a.stockName.compareTo(b.stockName));
     }
 
     return items;
   }
 
-  Widget _buildFilterChip(
-      String value,
-      String label,
-      Color color,
-      ) {
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
-    final bool selected =
-    value == 'SCORE' || value == 'NAME'
-        ? _selectedSort == value
-        : _selectedFilter == value;
+  int _countByStatus(String target) {
+    if (target == 'ALL') return _watchItems.length;
+    return _watchItems.where((item) {
+      final status = _analysisFor(item.ticker).finalStatus ?? 'WAIT';
+      if (target == 'ATTACK') return status.startsWith('ATTACK');
+      if (target == 'WATCH') return status.startsWith('WATCH');
+      if (target == 'RISK') return status == 'RISK';
+      return false;
+    }).length;
+  }
+
+  double _averageScore() {
+    if (_watchItems.isEmpty) return 0;
+    final total = _watchItems.fold<int>(
+      0,
+      (sum, item) => sum + (_analysisFor(item.ticker).finalScore ?? 0),
+    );
+    return total / _watchItems.length;
+  }
+
+  WatchItem? _topItem() {
+    if (_watchItems.isEmpty) return null;
+    final items = List<WatchItem>.from(_watchItems);
+    items.sort((a, b) {
+      return (_analysisFor(b.ticker).finalScore ?? 0)
+          .compareTo(_analysisFor(a.ticker).finalScore ?? 0);
+    });
+    return items.first;
+  }
+
+  Widget _buildSummaryCard() {
+    final topItem = _topItem();
+    final topResult = topItem == null ? null : _analysisFor(topItem.ticker);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Icon(
+                  Icons.star_rounded,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '\uAD00\uC2EC\uC885\uBAA9',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '\uC800\uC7A5\uD55C \uC885\uBAA9\uC758 \uCD5C\uADFC \uBD84\uC11D \uD750\uB984\uC744 \uD655\uC778\uD569\uB2C8\uB2E4.',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: '\uC0C8\uB85C\uACE0\uCE68',
+                onPressed: _isLoading ? null : _reloadAnalysis,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _buildMetricChip(
+                label: '\uC804\uCCB4',
+                value: '${_watchItems.length}',
+                color: const Color(0xFF2563EB),
+              ),
+              _buildMetricChip(
+                label: '\uACF5\uACA9',
+                value: '${_countByStatus('ATTACK')}',
+                color: const Color(0xFFDC2626),
+              ),
+              _buildMetricChip(
+                label: '\uAD00\uCC30',
+                value: '${_countByStatus('WATCH')}',
+                color: const Color(0xFFD97706),
+              ),
+              _buildMetricChip(
+                label: '\uD3C9\uADE0',
+                value: _averageScore().toStringAsFixed(0),
+                color: const Color(0xFF059669),
+              ),
+            ],
+          ),
+          if (topItem != null && topResult != null) ...[
+            const SizedBox(height: 14),
+            _buildTopInlineCard(topItem, topResult),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopInlineCard(WatchItem item, AnalysisResponse result) {
+    final status = result.finalStatus ?? 'WAIT';
+    final statusColor = _statusColor(status);
+    final score = result.finalScore ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: statusColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.workspace_premium_rounded, color: statusColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              item.stockName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '$score\uC810',
+            style: TextStyle(
+              color: statusColor,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricChip({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSegmentedControls() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildControlLabel('\uC815\uB82C'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildFilterChip(
+                'SCORE', '\uC810\uC218\uC21C', const Color(0xFF059669)),
+            _buildFilterChip(
+                'NAME', '\uC774\uB984\uC21C', const Color(0xFF2563EB)),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _buildControlLabel('\uC0C1\uD0DC'),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildFilterChip('ALL', '\uC804\uCCB4', const Color(0xFF64748B)),
+              _buildFilterChip(
+                  'ATTACK', '\uACF5\uACA9', const Color(0xFFDC2626)),
+              _buildFilterChip(
+                  'WATCH', '\uAD00\uCC30', const Color(0xFFD97706)),
+              _buildFilterChip('RISK', '\uC704\uD5D8', const Color(0xFF2563EB)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurface,
+        fontSize: 13,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label, Color color) {
+    final isSort = value == 'SCORE' || value == 'NAME';
+    final selected = isSort ? _selectedSort == value : _selectedFilter == value;
+    final count = isSort ? null : _countByStatus(value);
 
     return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: GestureDetector(
-        onTap: () {
+      padding: EdgeInsets.only(right: isSort ? 0 : 8),
+      child: FilterChip(
+        selected: selected,
+        showCheckmark: false,
+        label: Text(count == null ? label : '$label $count'),
+        labelStyle: TextStyle(
+          color:
+              selected ? color : Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+        backgroundColor: Theme.of(context).cardColor,
+        selectedColor: color.withValues(alpha: 0.12),
+        side: BorderSide(
+          color: selected
+              ? color.withValues(alpha: 0.45)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.18),
+        ),
+        onSelected: (_) {
           setState(() {
-            if (value == 'SCORE' || value == 'NAME') {
+            if (isSort) {
               _selectedSort = value;
             } else {
               _selectedFilter = value;
             }
           });
         },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 10,
-          ),
-          decoration: BoxDecoration(
-            color: selected
-                ? color.withValues(alpha: 0.16)
-                : isDark
-                ? const Color(0xFF1E293B)
-                : Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected
-                  ? color.withValues(alpha: 0.6)
-                  : Theme.of(context)
-                  .dividerColor
-                  .withValues(alpha: 0.20),
-            ),
-            boxShadow: selected
-                ? [
-              BoxShadow(
-                color: color.withValues(alpha: 0.22),
-                blurRadius: 16,
-                spreadRadius: 1,
-              ),
-            ]
-                : [],
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected
-                  ? color
-                  : Theme.of(context).textTheme.bodyMedium?.color,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-            ),
-          ),
-        ),
       ),
     );
   }
 
-  Widget _buildInfoCard() {
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF1E293B)
-            : Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withValues(alpha: 0.20),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: Color(0xFF3B82F6).withValues(alpha: 0.16),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.auto_graph,
-              color: Color(0xFF3B82F6),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '관심종목은 최근 분석 캐시를 빠르게 표시합니다. 최신 분석은 아래 버튼으로 수동 실행할 수 있습니다.',
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-                fontSize: 13,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // [2026-06-13 17:20 KST]
-  // 관심종목 TOP3 랭킹 카드
-  Widget _buildTopRankCard() {
-    final rankedItems = List<WatchItem>.from(_watchItems);
-
-    rankedItems.sort((a, b) {
-      final aResult = _watchResults.firstWhere(
-            (r) => r.ticker == a.ticker,
-        orElse: () => AnalysisResponse.empty(),
-      );
-
-      final bResult = _watchResults.firstWhere(
-            (r) => r.ticker == b.ticker,
-        orElse: () => AnalysisResponse.empty(),
-      );
-
-      return (bResult.finalScore ?? 0).compareTo(aResult.finalScore ?? 0);
-    });
-
-    final topItems = rankedItems.take(3).toList();
-
-    if (topItems.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '🏆 관심종목 TOP 3',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...topItems.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-
-              final result = _watchResults.firstWhere(
-                    (r) => r.ticker == item.ticker,
-                orElse: () => AnalysisResponse.empty(),
-              );
-
-              final score = result.finalScore ?? 0;
-              final status = result.finalStatus ?? 'WAIT';
-
-              final medal = index == 0
-                  ? '🥇'
-                  : index == 1
-                  ? '🥈'
-                  : '🥉';
-
-              return ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: Text(
-                  medal,
-                  style: const TextStyle(fontSize: 24),
-                ),
-                title: Text(
-                  item.stockName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(item.ticker),
-                trailing: Text(
-                  '$score점',
-                  style: TextStyle(
-                    color: _statusColor(status),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-  // 관심종목 카드 HUD 리스트 스타일로 전체 교체
-  // (Replace watch item card with HUD list style)
   Widget _buildWatchItemCard(WatchItem item) {
-    final result = _watchResults.firstWhere(
-          (r) => r.ticker == item.ticker,
-      orElse: () => AnalysisResponse.empty(),
-    );
+    final result = _analysisFor(item.ticker);
+    final status = result.finalStatus ?? 'WAIT';
+    final statusColor = _statusColor(status);
+    final score = result.finalScore ?? 0;
+    final close = result.close;
+    final ma20 = result.ma20;
+    final gap = ma20 > 0 && close > 0 ? ((close - ma20) / ma20) * 100 : null;
+    final history = _signalHistoryCache[item.ticker] ?? <SignalHistoryItem>[];
+    final latest = history.isEmpty ? null : history.first;
 
-    final String status = result.finalStatus ?? 'WAIT';
-    final Color statusColor = _statusColor(status);
-    final int score = result.finalScore ?? 0;
-    // ATTACK 상태 카드 강조
-    // (Highlight ATTACK status card)
-    final bool isAttack = status.startsWith('ATTACK');
-    final double close = result.close;
-    // MA20 대비 현재가 위치 계산
-    // (Calculate current price position against MA20)
-    final double ma20 = result.ma20;
-    final double ma20GapPercent =
-    close > 0 && ma20 > 0
-        ? ((close - ma20) / ma20) * 100
-        : 0;
-
-    // 최근 상태 변화 이력 조회
-    // (Load recent signal history)
-    final history =
-        _signalHistoryCache[item.ticker] ?? <SignalHistoryItem>[];
-
-    SignalHistoryItem? latestHistory;
-
-    if (history.isNotEmpty) {
-      latestHistory = history.last;
-    }
-
-    String statusLabel(String value) {
-      if (value == 'ATTACK_STRONG') {
-        return '강한 공격';
-      }
-
-      if (value == 'ATTACK_NORMAL') {
-        return '공격';
-      }
-
-      if (value == 'WATCH_STRONG') {
-        return '강한 관찰';
-      }
-
-      if (value.startsWith('WATCH')) {
-        return '관찰';
-      }
-
-      if (value == 'RISK') {
-        return '위험';
-      }
-
-      return '대기';
-    }
-
-    IconData statusIcon(String value) {
-      if (value.startsWith('ATTACK')) return Icons.trending_up;
-      if (value.startsWith('WATCH')) return Icons.visibility;
-      if (value == 'RISK') return Icons.warning_amber_rounded;
-      return Icons.hourglass_bottom;
-    }
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 450),
-      curve: Curves.easeInOut,
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isAttack
-              ? const Color(0xFFEF4444).withValues(alpha: 0.45)
-              : Theme.of(context)
-              .dividerColor
-              .withValues(alpha: 0.20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isAttack
-                ? const Color(0xFFEF4444).withValues(alpha: 0.30)
-                : statusColor.withValues(alpha: 0.10),
-            blurRadius: isAttack ? 24 : 14,
-            spreadRadius: isAttack ? 3 : 1,
-          ),
-        ],
-      ),
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () async {
-          try {
-            AnalysisResponse selectedResult = _watchResults.firstWhere(
-                  (r) => r.ticker == item.ticker,
-              orElse: () => AnalysisResponse.empty(),
-            );
-
-            if (selectedResult.ticker.isEmpty) {
-              selectedResult = await _apiService.analyzeSingle(
-                ticker: item.ticker,
-                stockName: item.stockName,
-              );
-            }
-
-            if (!mounted) return;
-
-            // [2026-06-12 23:55 KST]
-            // 관심종목 선택 시 분석 결과 페이지가 아니라 종목 상세 페이지로 이동
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => StockDetailPage(
-                  ticker: item.ticker,
-                  stockName: item.stockName,
-                  finalStatus: status,
-                  finalScore: score.toString(),
-                ),
-              ),
-            );
-          } catch (error) {
-            if (!mounted) return;
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('분석 결과를 열 수 없습니다. $error')),
-            );
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openDetail(item, result),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: statusColor.withValues(
+                  alpha: status.startsWith('ATTACK') ? 0.34 : 0.16),
+            ),
           ),
           child: Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.14),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.35),
-                  ),
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                child: Icon(
-                  statusIcon(status),
-                  color: statusColor,
-                  size: 18,
-                ),
+                child: Icon(_statusIcon(status), color: statusColor, size: 21),
               ),
-
-              const SizedBox(width: 10),
-
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      item.stockName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.ticker,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontSize: 11,
-                      ),
-                    ),
-
-                    if (latestHistory != null) ...[
-                      const SizedBox(height: 4),
-
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.history,
-                            size: 11,
-                            color: statusColor.withValues(alpha: 0.70),
-                          ),
-
-                          const SizedBox(width: 4),
-
-                          Expanded(
-                            child: Text(
-                              '${latestHistory.previousStatus ?? 'NONE'} → '
-                                  '${latestHistory.currentStatus}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: statusColor.withValues(alpha: 0.78),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.stockName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
                             ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 8),
+                        _buildStatusBadge(status),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          item.ticker,
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          close > 0
+                              ? close.toStringAsFixed(0)
+                              : '\uBD84\uC11D \uB300\uAE30',
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).textTheme.bodyMedium?.color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (gap != null)
+                          Text(
+                            'MA20 ${gap >= 0 ? '+' : ''}${gap.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              color: gap >= 0
+                                  ? const Color(0xFFDC2626)
+                                  : const Color(0xFF2563EB),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (latest != null) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        '${latest.previousStatus ?? 'NONE'} \u2192 ${latest.currentStatus}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: statusColor.withValues(alpha: 0.82),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-
-              const SizedBox(width: 8),
-
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    close > 0 ? close.toStringAsFixed(0) : '-',
+                    '$score',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      color: statusColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 350),
-                    transitionBuilder: (child, animation) {
-                      return ScaleTransition(
-                        scale: animation,
-                        child: FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Text(
-                      ma20 > 0
-                          ? '${ma20GapPercent >= 0 ? '+' : ''}${ma20GapPercent.toStringAsFixed(1)}%'
-                          : '$score점',
-                      key: ValueKey('${item.ticker}_${score}_${ma20GapPercent.toStringAsFixed(1)}'),
-                      style: TextStyle(
-                        color: ma20GapPercent >= 0
-                            ? const Color(0xFFEF4444)
-                            : const Color(0xFF3B82F6),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    tooltip: '\uC0AD\uC81C',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    onPressed: () => _deleteWatchItem(item.ticker),
                   ),
                 ],
-              ),
-
-              const SizedBox(width: 10),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 5,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: statusColor.withValues(alpha: 0.45),
-                  ),
-                ),
-                child: Text(
-                  statusLabel(status),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-
-              const SizedBox(width: 4),
-
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                iconSize: 18,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: 28,
-                  minHeight: 28,
-                ),
-                icon: Icon(
-                  Icons.close,
-                  color: Theme.of(context).disabledColor,
-                ),
-                onPressed: () => _deleteWatchItem(item.ticker),
               ),
             ],
           ),
@@ -776,82 +644,53 @@ class _WatchlistPageState extends State<WatchlistPage> {
     );
   }
 
-  // 관심종목 Skeleton 카드
-  // (Watchlist skeleton card)
+  Widget _buildStatusBadge(String status) {
+    final color = _statusColor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  void _openDetail(WatchItem item, AnalysisResponse result) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => StockDetailPage(
+          ticker: item.ticker,
+          stockName: item.stockName,
+          finalStatus: result.finalStatus ?? 'WAIT',
+          finalScore: (result.finalScore ?? 0).toString(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSkeletonWatchCard() {
-    final bool isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Shimmer.fromColors(
-        baseColor: isDark
-            ? const Color(0xFF1E293B)
-            : Theme.of(context).cardColor,
-        highlightColor: isDark
-            ? const Color(0xFF334155)
-            : const Color(0xFFF8FAFC),
+        baseColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB),
+        highlightColor:
+            isDark ? const Color(0xFF334155) : const Color(0xFFF8FAFC),
         child: Container(
-          height: 76,
+          height: 84,
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Container(
-                        width: 80,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Container(
-                  width: 52,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ],
-            ),
+            borderRadius: BorderRadius.circular(14),
           ),
         ),
       ),
@@ -860,20 +699,23 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
   Widget _buildEmptyCard(String message) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: Theme.of(context)
-              .dividerColor
-              .withValues(alpha: 0.20),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.20),
         ),
       ),
       child: Text(
         message,
+        textAlign: TextAlign.center,
         style: TextStyle(
           color: Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 13,
+          height: 1.45,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -882,89 +724,64 @@ class _WatchlistPageState extends State<WatchlistPage> {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      // 화면 당겨서 새로고침할 때도 실제 분석 실행 후 캐시를 다시 읽도록 수정
-      // (Run analysis when pull-to-refresh is triggered)
       onRefresh: _reloadAnalysis,
       child: ListView(
         padding: const EdgeInsets.all(16),
-        children: <Widget>[
+        children: [
           if (_isLoading && _watchItems.isEmpty)
             Column(
-              children: List.generate(
-                5,
-                    (index) => _buildSkeletonWatchCard(),
-              ),
+              children: List.generate(5, (_) => _buildSkeletonWatchCard()),
             )
           else if (_errorMessage != null)
             _buildEmptyCard(_errorMessage!)
-          else ...<Widget>[
-              _buildInfoCard(),
-              const SizedBox(height: 16),
-
-              _buildTopRankCard(),
-              const SizedBox(height: 16),
-
-              const SizedBox(height: 18),
-
-              Text(
-                '관심종목',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              Row(
-                children: [
-                  _buildFilterChip(
-                    'SCORE',
-                    '점수순',
-                    const Color(0xFF22C55E),
+          else ...[
+            _buildSummaryCard(),
+            const SizedBox(height: 16),
+            _buildSegmentedControls(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '\uC885\uBAA9 \uBAA9\uB85D',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
-
-                  _buildFilterChip(
-                    'NAME',
-                    '이름순',
-                    const Color(0xFF3B82F6),
+                ),
+                Text(
+                  '${_filteredWatchItems.length}\uAC1C',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
-
-              SizedBox(
-                height: 42,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _buildFilterChip('ALL', '전체', Colors.blueGrey),
-                    _buildFilterChip('ATTACK', '공격', const Color(0xFFEF4444)),
-                    _buildFilterChip('WATCH', '관찰', const Color(0xFFF59E0B)),
-                    _buildFilterChip('RISK', '위험', const Color(0xFF3B82F6)),
-                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (_watchItems.isEmpty)
+              _buildEmptyCard(
+                '\uC800\uC7A5\uB41C \uAD00\uC2EC\uC885\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+              )
+            else if (_filteredWatchItems.isEmpty)
+              _buildEmptyCard(
+                '\uC120\uD0DD\uD55C \uC0C1\uD0DC\uC758 \uAD00\uC2EC\uC885\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.',
+              )
+            else
+              ..._filteredWatchItems.map(_buildWatchItemCard),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isLoading ? null : _reloadAnalysis,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text(
+                  '\uC218\uB3D9\uC73C\uB85C \uB2E4\uC2DC \uBD84\uC11D',
                 ),
               ),
-
-              const SizedBox(height: 14),
-
-              if (_watchItems.isEmpty)
-                _buildEmptyCard('저장된 관심종목이 없습니다.')
-              else if (_filteredWatchItems.isEmpty)
-                _buildEmptyCard('선택한 상태의 관심종목이 없습니다.')
-              else
-                ..._filteredWatchItems.map(_buildWatchItemCard),
-
-              const SizedBox(height: 18),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _reloadAnalysis,
-                  icon: Icon(Icons.refresh),
-                  label: const Text('수동으로 다시 분석'),
-                ),
-              ),
-            ],
+            ),
+          ],
         ],
       ),
     );

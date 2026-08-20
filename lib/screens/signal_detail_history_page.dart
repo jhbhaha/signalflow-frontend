@@ -23,8 +23,7 @@ class SignalDetailHistoryPage extends StatefulWidget {
       _SignalDetailHistoryPageState();
 }
 
-class _SignalDetailHistoryPageState
-    extends State<SignalDetailHistoryPage> {
+class _SignalDetailHistoryPageState extends State<SignalDetailHistoryPage> {
   final ApiService _apiService = ApiService();
 
   bool _isLoading = true;
@@ -40,8 +39,7 @@ class _SignalDetailHistoryPageState
 
   Future<void> _loadHistory() async {
     try {
-      final items =
-      await _apiService.fetchSignalHistoryByTicker(
+      final items = await _apiService.fetchSignalHistoryByTicker(
         ticker: widget.ticker,
       );
 
@@ -55,8 +53,7 @@ class _SignalDetailHistoryPageState
       if (!mounted) return;
 
       setState(() {
-        _errorMessage =
-        '상태 변화 히스토리를 불러오지 못했습니다.\n$e';
+        _errorMessage = '상태 변화 히스토리를 불러오지 못했습니다.\n$e';
         _isLoading = false;
       });
     }
@@ -86,22 +83,34 @@ class _SignalDetailHistoryPageState
     try {
       final dt = DateTime.parse(raw);
 
-      final month =
-      dt.month.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
 
-      final day =
-      dt.day.toString().padLeft(2, '0');
+      final day = dt.day.toString().padLeft(2, '0');
 
-      final hour =
-      dt.hour.toString().padLeft(2, '0');
+      final hour = dt.hour.toString().padLeft(2, '0');
 
-      final minute =
-      dt.minute.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
 
       return '$month/$day $hour:$minute';
     } catch (_) {
       return raw;
     }
+  }
+
+  String _displayStatusName(String status) {
+    final upper = status.toUpperCase();
+    if (upper.startsWith('ATTACK')) return '\uACF5\uACA9';
+    if (upper.startsWith('WATCH')) return '\uAD00\uCC30';
+    if (upper == 'RISK') return '\uC704\uD5D8';
+    if (upper == 'WAIT') return '\uB300\uAE30';
+    return status;
+  }
+
+  String _displayPreviousStatus(String? status) {
+    if (status == null || status.isEmpty || status == 'NEW') {
+      return '\uC2E0\uADDC';
+    }
+    return _displayStatusName(status);
   }
 
   // [Added by ChatGPT | 2026-05-14 17:45 KST]
@@ -114,8 +123,7 @@ class _SignalDetailHistoryPageState
 
     final latest = _items.last;
 
-    final color =
-    _statusColor(latest.currentStatus);
+    final color = _statusColor(latest.currentStatus);
 
     String flowText = '흐름 관찰 필요';
 
@@ -151,8 +159,7 @@ class _SignalDetailHistoryPageState
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             widget.stockName,
@@ -161,9 +168,7 @@ class _SignalDetailHistoryPageState
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               Container(
@@ -173,20 +178,17 @@ class _SignalDetailHistoryPageState
                 ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.18),
-                  borderRadius:
-                  BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  latest.currentStatus,
+                  _displayStatusName(latest.currentStatus),
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Text(
                 '${latest.finalScore}점',
                 style: TextStyle(
@@ -197,9 +199,7 @@ class _SignalDetailHistoryPageState
               ),
             ],
           ),
-
           const SizedBox(height: 14),
-
           Text(
             flowText,
             style: TextStyle(
@@ -213,28 +213,25 @@ class _SignalDetailHistoryPageState
   }
 
   Widget _buildScoreChart() {
-    final recent = _items.length > 15
-        ? _items.sublist(_items.length - 15)
-        : _items;
+    final recent =
+        _items.length > 15 ? _items.sublist(_items.length - 15) : _items;
 
     final spots = recent.isEmpty
         ? <FlSpot>[
-      const FlSpot(0, 50),
-      const FlSpot(1, 50),
-      const FlSpot(2, 50),
-    ]
+            const FlSpot(0, 50),
+            const FlSpot(1, 50),
+            const FlSpot(2, 50),
+          ]
         : recent.asMap().entries.map(
-          (entry) {
-        return FlSpot(
-          entry.key.toDouble(),
-          entry.value.finalScore.toDouble(),
-        );
-      },
-    ).toList();
+            (entry) {
+              return FlSpot(
+                entry.key.toDouble(),
+                entry.value.finalScore.toDouble(),
+              );
+            },
+          ).toList();
 
-    final latestStatus = recent.isEmpty
-        ? 'WAIT'
-        : recent.last.currentStatus;
+    final latestStatus = recent.isEmpty ? 'WAIT' : recent.last.currentStatus;
 
     final chartColor = _statusColor(latestStatus);
 
@@ -251,8 +248,7 @@ class _SignalDetailHistoryPageState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 '최근 점수 흐름',
@@ -261,7 +257,6 @@ class _SignalDetailHistoryPageState
                   fontSize: 16,
                 ),
               ),
-
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -269,14 +264,13 @@ class _SignalDetailHistoryPageState
                 ),
                 decoration: BoxDecoration(
                   color: chartColor.withValues(alpha: 0.14),
-                  borderRadius:
-                  BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(999),
                   border: Border.all(
                     color: chartColor.withValues(alpha: 0.28),
                   ),
                 ),
                 child: Text(
-                  latestStatus,
+                  _displayStatusName(latestStatus),
                   style: TextStyle(
                     color: chartColor,
                     fontWeight: FontWeight.bold,
@@ -286,9 +280,7 @@ class _SignalDetailHistoryPageState
               ),
             ],
           ),
-
           const SizedBox(height: 20),
-
           SizedBox(
             height: 220,
             child: LineChart(
@@ -307,22 +299,17 @@ class _SignalDetailHistoryPageState
                     HorizontalRangeAnnotation(
                       y1: 4,
                       y2: 10,
-                      color: Color(0xFFEF4444)
-                          .withValues(alpha: 0.05),
+                      color: const Color(0xFFEF4444).withValues(alpha: 0.05),
                     ),
-
                     HorizontalRangeAnnotation(
                       y1: 3,
                       y2: 4,
-                      color: Color(0xFFF59E0B)
-                          .withValues(alpha: 0.04),
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.04),
                     ),
-
                     HorizontalRangeAnnotation(
                       y1: 0,
                       y2: 3,
-                      color: Color(0xFF3B82F6)
-                          .withValues(alpha: 0.04),
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.04),
                     ),
                   ],
                 ),
@@ -369,7 +356,6 @@ class _SignalDetailHistoryPageState
                     sideTitles: SideTitles(
                       showTitles: true,
                       reservedSize: 32,
-
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
 
@@ -382,8 +368,7 @@ class _SignalDetailHistoryPageState
                           return const SizedBox.shrink();
                         }
 
-                        final timestamp =
-                        DateTime.tryParse(
+                        final timestamp = DateTime.tryParse(
                           recent[index].timestamp,
                         );
 
@@ -397,10 +382,8 @@ class _SignalDetailHistoryPageState
                             '${timestamp.month}/${timestamp.day}',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodySmall?.color,
                             ),
                           ),
                         );
@@ -421,25 +404,21 @@ class _SignalDetailHistoryPageState
 
                 lineTouchData: LineTouchData(
                   enabled: true,
-
                   touchTooltipData: LineTouchTooltipData(
                     tooltipRoundedRadius: 12,
-
                     getTooltipItems: (spots) {
                       return spots.map(
-                            (spot) {
-                          final item =
-                          recent[spot.x.toInt()];
+                        (spot) {
+                          final item = recent[spot.x.toInt()];
 
-                          final color =
-                          _statusColor(
+                          final color = _statusColor(
                             item.currentStatus,
                           );
 
                           return LineTooltipItem(
                             '${item.currentStatus}\n'
-                                '${item.finalScore}점\n'
-                                '${_formatTimestamp(item.timestamp)}',
+                            '${item.finalScore}점\n'
+                            '${_formatTimestamp(item.timestamp)}',
                             TextStyle(
                               color: color,
                               fontWeight: FontWeight.bold,
@@ -454,24 +433,24 @@ class _SignalDetailHistoryPageState
 
                 lineBarsData: [
                   LineChartBarData(
-                    showingIndicators: spots.asMap().entries
+                    showingIndicators: spots
+                        .asMap()
+                        .entries
                         .where(
                           (entry) {
-                        final index = entry.key;
+                            final index = entry.key;
 
-                        if (index == 0) {
-                          return false;
-                        }
+                            if (index == 0) {
+                              return false;
+                            }
 
-                        final prev =
-                            recent[index - 1].currentStatus;
+                            final prev = recent[index - 1].currentStatus;
 
-                        final current =
-                            recent[index].currentStatus;
+                            final current = recent[index].currentStatus;
 
-                        return prev != current;
-                      },
-                    )
+                            return prev != current;
+                          },
+                        )
                         .map((e) => e.key)
                         .toList(),
                     spots: spots,
@@ -481,34 +460,23 @@ class _SignalDetailHistoryPageState
                     barWidth: 3,
                     dotData: FlDotData(
                       show: true,
-                      getDotPainter:
-                          (spot, percent, bar, index) {
-
-                        final current =
-                            recent[index].currentStatus;
+                      getDotPainter: (spot, percent, bar, index) {
+                        final current = recent[index].currentStatus;
 
                         final previous =
-                        index > 0
-                            ? recent[index - 1].currentStatus
-                            : '';
+                            index > 0 ? recent[index - 1].currentStatus : '';
 
                         final bool isAttackEntry =
                             !previous.startsWith('ATTACK') &&
                                 current.startsWith('ATTACK');
 
-                        final color =
-                        _statusColor(current);
+                        final color = _statusColor(current);
 
                         return FlDotCirclePainter(
                           radius: isAttackEntry ? 7 : 4,
-
                           color: color,
-
-                          strokeWidth:
-                          isAttackEntry ? 3 : 2,
-
-                          strokeColor:
-                          isAttackEntry
+                          strokeWidth: isAttackEntry ? 3 : 2,
+                          strokeColor: isAttackEntry
                               ? const Color(0xFFEF4444)
                               : Theme.of(context).colorScheme.onSurface,
                         );
@@ -549,17 +517,15 @@ class _SignalDetailHistoryPageState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '상태 변화 Timeline',
+            '상태 변화 타임라인',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
-
           const SizedBox(height: 16),
-
           ...reversed.map(
-                (item) {
+            (item) {
               final color = _statusColor(item.currentStatus);
 
               return Container(
@@ -582,38 +548,30 @@ class _SignalDetailHistoryPageState
                         shape: BoxShape.circle,
                       ),
                     ),
-
                     const SizedBox(width: 12),
-
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${item.previousStatus ?? 'NEW'} → ${item.currentStatus}',
+                            '${_displayPreviousStatus(item.previousStatus)} → ${_displayStatusName(item.currentStatus)}',
                             style: TextStyle(
                               color: color,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-
                           const SizedBox(height: 4),
-
                           Text(
                             '${item.finalScore}점',
                             style: TextStyle(
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
                               fontSize: 12,
                             ),
                           ),
                         ],
                       ),
                     ),
-
                     Text(
                       _formatTimestamp(item.timestamp),
                       style: TextStyle(
@@ -641,37 +599,31 @@ class _SignalDetailHistoryPageState
       appBar: AppBar(
         title: Text(widget.stockName),
       ),
-      backgroundColor:
-      Theme.of(context).scaffoldBackgroundColor,
-
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(),
-      )
+              child: CircularProgressIndicator(),
+            )
           : _errorMessage != null
-          ? Center(
-        child: Text(
-          _errorMessage!,
-          textAlign: TextAlign.center,
-        ),
-      )
-          : RefreshIndicator(
-        onRefresh: _loadHistory,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildHeroHeader(),
-
-            const SizedBox(height: 16),
-
-            _buildScoreChart(),
-
-            const SizedBox(height: 16),
-
-            _buildTimeline(),
-          ],
-        ),
-      ),
+              ? Center(
+                  child: Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadHistory,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      _buildHeroHeader(),
+                      const SizedBox(height: 16),
+                      _buildScoreChart(),
+                      const SizedBox(height: 16),
+                      _buildTimeline(),
+                    ],
+                  ),
+                ),
     );
   }
 }
