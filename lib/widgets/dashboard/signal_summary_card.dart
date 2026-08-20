@@ -1,9 +1,3 @@
-// File: signal_summary_card.dart (시그널 요약 카드)
-// [Added by ChatGPT | 2026-05-22 13:25 KST]
-// Insert Location: lib/widgets/dashboard/signal_summary_card.dart 새 파일 생성
-
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../models/dashboard_summary.dart';
@@ -18,41 +12,115 @@ class SignalSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final total = summary.attackCount +
+        summary.watchCount +
+        summary.riskCount +
+        summary.waitCount;
+
     return _buildSignalFlowCard(
+      context: context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '오늘의 시그널',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '신호 분포',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+              ),
+              Text(
+                '관심 ${summary.watchlistCount}개',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(
+                        alpha: 0.56,
+                      ),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$total',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '개 신호',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
+                          alpha: 0.58,
+                        ),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _DistributionBar(
+            total: total,
+            segments: [
+              _SignalSegment(
+                label: '공격',
+                count: summary.attackCount,
+                color: const Color(0xFF16A34A),
+              ),
+              _SignalSegment(
+                label: '관찰',
+                count: summary.watchCount,
+                color: const Color(0xFFF59E0B),
+              ),
+              _SignalSegment(
+                label: '위험',
+                count: summary.riskCount,
+                color: const Color(0xFF2563EB),
+              ),
+              _SignalSegment(
+                label: '대기',
+                count: summary.waitCount,
+                color: const Color(0xFF64748B),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildStatusBadge(
-                label: 'WATCHLIST ${summary.watchlistCount}',
-                color: const Color(0xFF3B82F6),
+              _StatusCountPill(
+                label: '공격',
+                count: summary.attackCount,
+                color: const Color(0xFF16A34A),
               ),
-              _buildStatusBadge(
-                label: 'ATTACK ${summary.attackCount}',
-                color: const Color(0xFFEF4444),
-              ),
-              _buildStatusBadge(
-                label: 'WATCH ${summary.watchCount}',
+              _StatusCountPill(
+                label: '관찰',
+                count: summary.watchCount,
                 color: const Color(0xFFF59E0B),
               ),
-              _buildStatusBadge(
-                label: 'RISK ${summary.riskCount}',
-                color: const Color(0xFF3B82F6),
+              _StatusCountPill(
+                label: '위험',
+                count: summary.riskCount,
+                color: const Color(0xFF2563EB),
               ),
-              _buildStatusBadge(
-                label: 'WAIT ${summary.waitCount}',
+              _StatusCountPill(
+                label: '대기',
+                count: summary.waitCount,
                 color: const Color(0xFF64748B),
               ),
-              const SizedBox(height: 18),
-              _buildStatusDonutChart(context, summary),
             ],
           ),
         ],
@@ -61,278 +129,117 @@ class SignalSummaryCard extends StatelessWidget {
   }
 
   Widget _buildSignalFlowCard({
+    required BuildContext context,
     required Widget child,
   }) {
-    return Builder(
-      builder: (context) {
-        final bool isDark =
-            Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Theme.of(context)
-                  .dividerColor
-                  .withValues(alpha: 0.20),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: isDark ? 0.25 : 0.08,
-                ),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: child,
-          ),
-        );
-      },
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
+      ),
     );
   }
+}
 
-  Widget _buildStatusBadge({
-    required String label,
-    required Color color,
-  }) {
-    final bool isAttackBadge = label.startsWith('ATTACK');
+class _DistributionBar extends StatelessWidget {
+  const _DistributionBar({
+    required this.total,
+    required this.segments,
+  });
 
-    return AnimatedScale(
-      scale: isAttackBadge ? 1.03 : 1.0,
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeInOut,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 12,
-        ),
+  final int total;
+  final List<_SignalSegment> segments;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeSegments =
+        segments.where((segment) => segment.count > 0).toList();
+
+    if (total == 0 || activeSegments.isEmpty) {
+      return Container(
+        height: 12,
         decoration: BoxDecoration(
-          color: color.withValues(alpha: isAttackBadge ? 0.18 : 0.12),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.18),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: color.withValues(alpha: isAttackBadge ? 0.75 : 0.55),
-          ),
-          gradient: LinearGradient(
-            colors: [
-              color.withValues(alpha: isAttackBadge ? 0.28 : 0.22),
-              color.withValues(alpha: isAttackBadge ? 0.12 : 0.08),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: isAttackBadge ? 0.28 : 0.18),
-              blurRadius: isAttackBadge ? 24 : 18,
-              spreadRadius: isAttackBadge ? 3 : 2,
-            ),
-          ],
         ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(999),
+      child: SizedBox(
+        height: 12,
         child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
+          children: activeSegments.map((segment) {
+            return Expanded(
+              flex: segment.count,
+              child: Container(color: segment.color),
+            );
+          }).toList(),
         ),
       ),
     );
   }
-
-  Widget _buildStatusDonutChart(
-      BuildContext context,
-      DashboardSummary summary,
-      ) {
-    final int attack = summary.attackCount;
-    final int watch = summary.watchCount;
-    final int risk = summary.riskCount;
-    final int wait = summary.waitCount;
-    final int total = attack + watch + risk + wait;
-
-    return Row(
-      children: [
-        SizedBox(
-          width: 110,
-          height: 110,
-          child: CustomPaint(
-            painter: _StatusDonutPainter(
-              attack: attack,
-              watch: watch,
-              risk: risk,
-              wait: wait,
-            ),
-            child: Center(
-              child: Text(
-                total.toString(),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 18),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildLegendItem(context, '공격', attack, const Color(0xFFEF4444), total),
-              const SizedBox(height: 8),
-              _buildLegendItem(context, '관찰', watch, const Color(0xFFF59E0B), total),
-              const SizedBox(height: 8),
-              _buildLegendItem(context, '위험', risk, const Color(0xFF3B82F6), total),
-              const SizedBox(height: 8),
-              _buildLegendItem(context, '대기', wait, const Color(0xFF64748B), total),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(
-      BuildContext context,
-      String label,
-      int count,
-      Color color,
-      int total,
-      ) {
-    final int percent = total == 0 ? 0 : ((count / total) * 100).round();
-
-    return Row(
-      children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Theme.of(context).textTheme.bodyMedium?.color,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        Text(
-          '$percent%',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
 }
 
-class _StatusDonutPainter extends CustomPainter {
-  _StatusDonutPainter({
-    required this.attack,
-    required this.watch,
-    required this.risk,
-    required this.wait,
+class _StatusCountPill extends StatelessWidget {
+  const _StatusCountPill({
+    required this.label,
+    required this.count,
+    required this.color,
   });
 
-  final int attack;
-  final int watch;
-  final int risk;
-  final int wait;
+  final String label;
+  final int count;
+  final Color color;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final int total = attack + watch + risk + wait;
-
-    final Offset center = Offset(size.width / 2, size.height / 2);
-    final double radius = size.width / 2;
-    final Rect rect = Rect.fromCircle(center: center, radius: radius);
-
-    final Paint backgroundPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.07)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 14
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawCircle(center, radius - 8, backgroundPaint);
-
-    if (total == 0) {
-      return;
-    }
-
-    final List<_DonutSegment> segments = [
-      _DonutSegment(attack, const Color(0xFFEF4444)),
-      _DonutSegment(watch, const Color(0xFFF59E0B)),
-      _DonutSegment(risk, const Color(0xFF3B82F6)),
-      _DonutSegment(wait, const Color(0xFF64748B)),
-    ];
-
-    double startAngle = -math.pi / 2;
-
-    for (final segment in segments) {
-      if (segment.value <= 0) continue;
-
-      final double sweepAngle = (segment.value / total) * math.pi * 2;
-
-      final Paint paint = Paint()
-        ..color = segment.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 14
-        ..strokeCap = StrokeCap.round;
-
-      canvas.drawArc(
-        rect.deflate(8),
-        startAngle,
-        sweepAngle,
-        false,
-        paint,
-      );
-
-      startAngle += sweepAngle;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _StatusDonutPainter oldDelegate) {
-    return attack != oldDelegate.attack ||
-        watch != oldDelegate.watch ||
-        risk != oldDelegate.risk ||
-        wait != oldDelegate.wait;
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Text(
+        '$label $count',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
   }
 }
 
-class _DonutSegment {
-  _DonutSegment(this.value, this.color);
+class _SignalSegment {
+  const _SignalSegment({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
 
-  final int value;
+  final String label;
+  final int count;
   final Color color;
 }

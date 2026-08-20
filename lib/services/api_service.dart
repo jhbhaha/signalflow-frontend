@@ -23,20 +23,31 @@ import '../models/market_overview.dart';
 // [2026-05-28 20:00 KST]
 // 가격 차트 모델 추가 (Add price chart model)
 import '../models/price_chart_point.dart';
+// [Added by Claude | 2026-08-10 KST]
+// 오늘의 대응 전략(공격/회복/위험) 모델 추가
+import '../models/response_strategy.dart';
 
 class ApiService {
   // API timeout / retry 설정
   // (API timeout and retry settings)
   static const Duration _requestTimeout = Duration(seconds: 30);
   static const int _maxRetryCount = 2;
-  // 운영 서버 주소 기본값 지정
-  // (Set production API server as default)
-   static const String _devBaseUrl =
-       'https://stockmarket-backend-nwkm.onrender.com';
+  // [2026-06-28 20:55 KST]
+  // AWS 운영 서버
+  static const String _awsBaseUrl =
+      'http://43.200.8.46';
 
+  // Render 백업 서버
+  static const String renderBaseUrl =
+      'https://stockmarket-backend-nwkm.onrender.com';
+
+  // 개발 기본 서버 (필요 시 Render로 쉽게 변경 가능)
+  static const String _devBaseUrl = _awsBaseUrl;
+
+  // 운영 서버
   static const String _prodBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://stockmarket-backend-nwkm.onrender.com',
+    defaultValue: 'http://43.200.8.46',
   );
 
   static const bool _useProductionApi = true;
@@ -492,6 +503,14 @@ class ApiService {
       ),
     )
         .toList();
+  }
+
+  // [Added by Claude | 2026-08-10 KST]
+  // 오늘의 대응 전략(공격 후보 / 회복 후보 / 위험 종목) 조회
+  Future<ResponseStrategy> fetchResponseStrategy() async {
+    final dynamic decoded = await _getJson('/dashboard/response-strategy');
+
+    return ResponseStrategy.fromJson(decoded as Map<String, dynamic>);
   }
 
 }

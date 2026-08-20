@@ -387,27 +387,164 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     );
   }
 
-  Widget _buildStringList(List<String> items) {
-    if (items.isEmpty) {
-      return const Text('-');
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .map(
-            (item) => Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: Text('- $item'),
-        ),
-      )
-          .toList(),
+  Widget _buildInfoRow(
+    String label,
+    String value, {
+    Color? valueColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
+  Widget _buildMetricChip({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: Theme.of(context).textTheme.bodyMedium?.color,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageBox(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.30),
+        ),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          fontSize: 13,
+          height: 1.5,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStringList(List<String> items) {
+    if (items.isEmpty) {
+      return _buildEmptyState('\uD45C\uC2DC\uD560 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
+    }
+
+    return Column(
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key + 1;
+        final item = entry.value;
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$index',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  item,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.45,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
     Widget _buildEtfList(List<dynamic> etfItems) {
       if (etfItems.isEmpty) {
-        return const Text('ETF 추천 결과 없음');
+        return _buildEmptyState('ETF 추천 결과가 없습니다.');
       }
       final bool isDark =
           Theme.of(context).brightness == Brightness.dark;
@@ -445,7 +582,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               : '하락 동조 흐름';
 
           final String probabilityText =
-              '${(isBullish ? upProbability : downProbability * 100).toStringAsFixed(1)}%';
+              '${((isBullish ? upProbability : downProbability) * 100).toStringAsFixed(1)}%';
 
           return Container(
             width: double.infinity,
@@ -550,40 +687,75 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
   Widget _buildAlertList(List<dynamic> alerts) {
     if (alerts.isEmpty) {
-      return const Text('발생한 알림 없음');
+      return _buildEmptyState('\uBC1C\uC0DD\uD55C \uC54C\uB9BC\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.');
     }
 
     return Column(
       children: alerts.map((item) {
         final alert = item as Map<String, dynamic>;
-        final subject = (alert['subject'] ?? '').toString();
+        final subject = (alert['subject'] ?? '\uC54C\uB9BC').toString();
         final body = (alert['body'] ?? '').toString();
 
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF64748B)
-                .withValues(alpha: 0.08),
+            color: const Color(0xFF64748B).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFF64748B).withValues(alpha: 0.18),
+            ),
           ),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                subject,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF64748B).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Icon(
+                  Icons.notifications_none_rounded,
+                  size: 18,
+                  color: Color(0xFF64748B),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(body),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      subject,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    if (body.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        body,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         );
       }).toList(),
     );
   }
-
   Widget _buildBody() {
     final bool isDark =
         Theme.of(context).brightness == Brightness.dark;
@@ -750,19 +922,19 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     String overallLabel;
 
     if (overallScore >= 85) {
-      overallGrade = '★★★★★';
-      overallLabel = '매우 긍정적';
+      overallGrade = 'A+';
+      overallLabel = '매우 긍정';
     } else if (overallScore >= 70) {
-      overallGrade = '★★★★';
-      overallLabel = '긍정적';
+      overallGrade = 'A';
+      overallLabel = '긍정';
     } else if (overallScore >= 55) {
-      overallGrade = '★★★';
+      overallGrade = 'B';
       overallLabel = '중립';
     } else if (overallScore >= 40) {
-      overallGrade = '★★';
+      overallGrade = 'C';
       overallLabel = '주의';
     } else {
-      overallGrade = '★';
+      overallGrade = 'D';
       overallLabel = '위험';
     }
 
@@ -826,53 +998,55 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               // [Modified by ChatGPT | 2026-06-12 23:35 KST]
 // AI 흐름 카드를 Row 밖으로 분리하여 RenderBox 레이아웃 오류 수정
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Flexible(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
-                      decoration: BoxDecoration(
-                        color: finalStatusColor.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: finalStatusColor.withValues(alpha: 0.45),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: finalStatusColor.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: finalStatusColor.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: Text(
+                            _statusDisplayName(finalStatus),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: finalStatusColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        _statusDisplayName(finalStatus),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: finalStatusColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                        const SizedBox(height: 8),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$finalScore점',
-                        style: TextStyle(
-                          color: finalStatusColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 34,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        statusLabel,
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '$finalScore점',
+                    style: TextStyle(
+                      color: finalStatusColor,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 36,
+                    ),
                   ),
                 ],
               ),
@@ -954,7 +1128,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                     ),
                   ),
                   child: const Text(
-                    '단기 상승 과열 또는 변동성 확대 가능성이 감지되었습니다.',
+                    '단기 상승 과열 또는 변동성 확대 가능성이 감지됐습니다.',
                     style: TextStyle(
                       color: Colors.orangeAccent,
                       fontSize: 12,
@@ -1041,7 +1215,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
         // SignalFlow 종합 평가 카드
 
         _buildSectionCard(
-          title: '📊 SignalFlow 종합 평가',
+          title: 'SignalFlow 종합 평가',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1159,10 +1333,10 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('종목명: $stockName'),
-              Text('종목코드: $ticker'),
-              Text('기준일: $asofDate'),
-              Text('종가: ${close.toStringAsFixed(0)}'),
+              _buildInfoRow('종목명', stockName),
+              _buildInfoRow('종목코드', ticker),
+              _buildInfoRow('기준일', asofDate),
+              _buildInfoRow('종가', close.toStringAsFixed(0)),
               const SizedBox(height: 12),
               // [2026-06-02 13:40 KST]
               // 상태 이력 화면 이동 버튼
@@ -1276,38 +1450,33 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '기본 상태: $status ($statusLabel)',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
+                      _buildInfoRow('기본 상태', '$status ($statusLabel)'),
                       const SizedBox(height: 6),
-                      Text('기본 점수: $statusScore'),
+                      _buildInfoRow('기본 점수', statusScore),
                       const SizedBox(height: 8),
-                      Text(
-                        '최종 상태: ${_statusDisplayName(finalStatus)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: finalStatusColor,
-                        ),
+                      _buildInfoRow(
+                        '최종 상태',
+                        _statusDisplayName(finalStatus),
+                        valueColor: finalStatusColor,
                       ),
-                      Text('최종 점수: $finalScore'),
+                      _buildInfoRow('최종 점수', finalScore, valueColor: finalStatusColor),
                       const SizedBox(height: 8),
-                      Text('ETF 반영 사유: $etfReason'),
+                      _buildInfoRow('ETF 반영', etfReason),
                       if (etfCorrelation != null)
                         Text(
-                          '대표 ETF 상관계수: ${((etfCorrelation as num).toDouble()).toStringAsFixed(3)}',
+                          '관련 ETF 상관계수: ${((etfCorrelation as num).toDouble()).toStringAsFixed(3)}',
                         ),
                       if (etfUpProb != null)
                         Text(
-                          '대표 ETF 상승 동조 확률: ${(((etfUpProb as num).toDouble()) * 100).toStringAsFixed(1)}%',
+                          '관련 ETF 상승 동조 확률: ${(((etfUpProb as num).toDouble()) * 100).toStringAsFixed(1)}%',
                         ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('요약: $summary'),
+                _buildInfoRow('요약', summary),
                 const SizedBox(height: 8),
-                Text('가이드: $actionGuide'),
+                _buildInfoRow('가이드', actionGuide),
 
                 // [2026-05-27 11:05 KST]
                 // 상태요약 상세 설명 진입 힌트
@@ -1359,7 +1528,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
         // [2026-06-03 14:40 KST]
         // AI 분석 카드 (AI Analysis Card)
         _buildSectionCard(
-          title: '🤖 AI 분석',
+          title: 'AI 분석',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1384,6 +1553,28 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
+                    ),
+
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _buildMetricChip(
+                          label: '점수',
+                          value: '${aiScore ?? '-'}점',
+                          color: const Color(0xFF0891B2),
+                        ),
+                        _buildMetricChip(
+                          label: '등급',
+                          value: aiGrade,
+                          color: const Color(0xFF7C3AED),
+                        ),
+                        _buildMetricChip(
+                          label: '판단',
+                          value: aiStatus,
+                          color: finalStatusColor,
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 14),
@@ -1440,25 +1631,6 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                       ),
                     ),
 
-                    const SizedBox(height: 8),
-
-                    Text(
-                      '등급: $aiGrade',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      '판단: $aiStatus',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
 
                     const SizedBox(height: 12),
 
@@ -1509,7 +1681,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
         const SizedBox(height: 12),
         _buildSectionCard(
           title: '원본 메시지',
-          child: Text(message),
+          child: _buildMessageBox(message),
         ),
       ],
     );

@@ -1,0 +1,32 @@
+<!--
+  File: signalflow_logo.svg
+  Last Modified: 2026-06-28 10:20 KST (작성자: ChatGPT)
+  Insert Location: assets/images/signalflow_logo.svg 새 파일 생성
+-->
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="signalBlue" x1="24" y1="18" x2="104" y2="110" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#16C8FF"/>
+            <stop offset="1" stop-color="#176BFF"/>
+        </linearGradient>
+    </defs>
+
+    <path
+        d="M86 24C68 16 41 23 32 43C25 59 33 72 49 77"
+        stroke="url(#signalBlue)"
+        stroke-width="18"
+        stroke-linecap="round"
+    />
+
+    <path
+        d="M42 104C60 112 87 105 96 85C103 69 95 56 79 51"
+        stroke="url(#signalBlue)"
+        stroke-width="18"
+        stroke-linecap="round"
+    />
+
+    <rect x="48" y="57" width="5" height="18" rx="2.5" fill="#18C8FF"/>
+    <rect x="58" y="50" width="5" height="32" rx="2.5" fill="#18C8FF"/>
+    <rect x="68" y="56" width="5" height="20" rx="2.5" fill="#18C8FF"/>
+    <rect x="78" y="61" width="5" height="10" rx="2.5" fill="#18C8FF"/>
+</svg>

@@ -1,7 +1,3 @@
-// File: market_card.dart (시장 상태 카드)
-// [Added by ChatGPT | 2026-05-22 13:10 KST]
-// Insert Location: lib/widgets/dashboard/market_card.dart 새 파일 생성
-
 import 'package:flutter/material.dart';
 
 import '../../models/dashboard_summary.dart';
@@ -13,313 +9,284 @@ class MarketCard extends StatelessWidget {
     required this.summary,
     required this.marketOverview,
     required this.statusColor,
-    required this.onWatchNowTap,
-    required this.onAttackListTap,
   });
 
   final DashboardSummary summary;
   final MarketOverview? marketOverview;
   final Color Function(String status) statusColor;
-  final Future<void> Function() onWatchNowTap;
-  final VoidCallback onAttackListTap;
 
   String _getMarketSessionStatus() {
     final now = DateTime.now();
 
-    if (now.weekday == DateTime.saturday ||
-        now.weekday == DateTime.sunday) {
+    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
       return 'CLOSED';
     }
 
     final minutes = now.hour * 60 + now.minute;
 
     if (minutes < 9 * 60) {
-      return 'PRE MARKET';
+      return 'PRE';
     }
 
     if (minutes >= 9 * 60 && minutes < 15 * 60 + 30) {
       return 'OPEN';
     }
 
-    return 'AFTER MARKET';
+    return 'AFTER';
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final color = statusColor(summary.marketStatus);
-    final String sessionStatus = _getMarketSessionStatus();
+    final sessionStatus = _getMarketSessionStatus();
 
     return _buildSignalFlowCard(
+      context: context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.insights, color: color, size: 32),
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(Icons.insights_rounded, color: color, size: 22),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '시장 상태',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '시장 세부 흐름',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        _buildStatusChip(
+                          context: context,
+                          label: sessionStatus,
+                          color: const Color(0xFF64748B),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      summary.marketStatus,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.bold,
+                      summary.marketMessage.isEmpty
+                          ? summary.marketStatus
+                          : summary.marketMessage,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.66),
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(summary.marketMessage),
                   ],
                 ),
               ),
             ],
           ),
-
           if (marketOverview != null) ...[
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .dividerColor
-                            .withValues(alpha: 0.20),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'KOSPI',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${marketOverview!.kospiChange.toStringAsFixed(2)}%',
-                          style: TextStyle(
-                            color: marketOverview!.kospiChange >= 0
-                                ? const Color(0xFFEF4444)
-                                : const Color(0xFF3B82F6),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: _buildIndexTile(
+                    context: context,
+                    label: 'KOSPI',
+                    value: marketOverview!.kospiChange,
                   ),
                 ),
-
-                const SizedBox(width: 12),
-
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Theme.of(context)
-                            .dividerColor
-                            .withValues(alpha: 0.20),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'KOSDAQ',
-                          style: TextStyle(
-                            color: Theme.of(context).textTheme.bodyMedium?.color,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${marketOverview!.kosdaqChange.toStringAsFixed(2)}%',
-                          style: TextStyle(
-                            color: marketOverview!.kosdaqChange >= 0
-                                ? const Color(0xFFEF4444)
-                                : const Color(0xFF3B82F6),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: _buildIndexTile(
+                    context: context,
+                    label: 'KOSDAQ',
+                    value: marketOverview!.kosdaqChange,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildMarketStatusTile(
+                    context: context,
+                    label: 'STATUS',
+                    value: marketOverview!.marketStatus,
+                    color: color,
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 14),
-
+          ],
+          if (summary.marketStatus == 'RISK') ...[
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(999),
+                color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: color.withValues(alpha: 0.28),
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.16),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.public,
-                    size: 16,
-                    color: color,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'MARKET ${marketOverview!.marketStatus}',
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: Theme.of(context)
-                      .dividerColor
-                      .withValues(alpha: 0.20),
+              child: const Text(
+                '신규 진입보다 방어 전략을 우선하세요.',
+                style: TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
                 ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.schedule,
-                    size: 16,
-                    color: Color(0xFF94A3B8),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    sessionStatus,
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
               ),
             ),
           ],
-
-          if (summary.marketStatus == 'RISK')
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                '⚠ 신규 진입보다 방어 전략이 우선입니다',
-                style: TextStyle(
-                  color: Color(0xFFEF4444),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: summary.topSignals.isEmpty
-                      ? null
-                      : () {
-                    onWatchNowTap();
-                  },
-                  child: const Text('지금 볼 종목 보기'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onAttackListTap,
-                  child: const Text('공격 후보만'),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
+  Widget _buildIndexTile({
+    required BuildContext context,
+    required String label,
+    required double value,
+  }) {
+    final color =
+        value >= 0 ? const Color(0xFFEF4444) : const Color(0xFF2563EB);
+
+    return _MiniMarketTile(
+      label: label,
+      value: '${value.toStringAsFixed(2)}%',
+      color: color,
+    );
+  }
+
+  Widget _buildMarketStatusTile({
+    required BuildContext context,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return _MiniMarketTile(
+      label: label,
+      value: value,
+      color: color,
+    );
+  }
+
+  Widget _buildStatusChip({
+    required BuildContext context,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
   Widget _buildSignalFlowCard({
+    required BuildContext context,
     required Widget child,
   }) {
-    return Builder(
-      builder: (context) {
-        final bool isDark =
-            Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : Theme.of(context)
-                  .dividerColor
-                  .withValues(alpha: 0.20),
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.18),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.18 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _MiniMarketTile extends StatelessWidget {
+  const _MiniMarketTile({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(11),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface.withValues(
+                    alpha: 0.54,
+                  ),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: isDark ? 0.25 : 0.08,
-                ),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
-              ),
-            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: child,
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+              fontSize: 15,
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }

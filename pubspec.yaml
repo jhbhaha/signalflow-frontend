@@ -1,7 +1,7 @@
 name: flutter_stock_frontend
 description: Flutter frontend for stock analysis API
 publish_to: 'none'
-version: 1.0.25+26
+version: 1.0.31+32
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -18,6 +18,7 @@ dependencies:
   fl_chart: ^0.68.0
   shimmer: ^3.0.0
   google_mobile_ads: ^5.3.1
+  flutter_svg: ^2.2.3
 
 dev_dependencies:
   flutter_test:
@@ -34,6 +35,7 @@ flutter:
   assets:
     - assets/icon/app_icon.png
     - assets/splash/splash_logo.png
+    - assets/images/signalflow_logo.svg
 
 flutter_launcher_icons:
   android: true
