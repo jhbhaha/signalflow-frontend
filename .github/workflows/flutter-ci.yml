@@ -39,6 +39,14 @@ jobs:
       - name: Run tests
         run: flutter test
 
+      # [Modified by Cloud | 2026-08-21 KST] GitHub Actions에서 Firebase 설정 파일을 Secret으로 안전하게 복원
+      - name: Restore google-services.json
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/app/google-services.json
+          test -s android/app/google-services.json
+
       # [Added by ChatGPT | 2026-08-21 13:49 KST]
       # PR 단계에서는 APK를 만들지 않고,
       # main 브랜치에 Merge된 뒤 push 이벤트에서만 APK 생성
