@@ -18,7 +18,8 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.3" apply false
+    // [Modified by Codex | 2026-08-21 KST] Flutter 최신 Android 빌드 호환을 위해 AGP 8.7.3 → 8.11.1 업데이트
+    id("com.android.application") version "8.11.1" apply false
     id("org.jetbrains.kotlin.android") version "2.1.0" apply false
 }
 
