@@ -1,6 +1,6 @@
 # File: .github/workflows/flutter-ci.yml
-# Last Modified: 2026-08-20 21:15 KST (작성자: ChatGPT)
-# Insert Location: GitHub > signalflow-frontend > Actions > set up a workflow yourself
+# Last Modified: 2026-08-21 13:49 KST (작성자: ChatGPT)
+# Insert Location: signalflow-frontend/.github/workflows/flutter-ci.yml 전체 교체
 
 name: Flutter App CI
 
@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+
   push:
     branches:
       - main
@@ -37,3 +38,21 @@ jobs:
 
       - name: Run tests
         run: flutter test
+
+      # [Added by ChatGPT | 2026-08-21 13:49 KST]
+      # PR 단계에서는 APK를 만들지 않고,
+      # main 브랜치에 Merge된 뒤 push 이벤트에서만 APK 생성
+      - name: Build debug APK
+        if: github.event_name == 'push'
+        run: flutter build apk --debug
+
+      # [Added by ChatGPT | 2026-08-21 13:49 KST]
+      # 생성된 APK를 GitHub Actions Artifacts에 업로드
+      - name: Upload debug APK artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: signalflow-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
