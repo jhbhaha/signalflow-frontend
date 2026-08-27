@@ -12,6 +12,8 @@ class NotificationEvent {
   final String message;
   final String createdAt;
   final bool read;
+  // [Modified by Claude | 2026-08-27 KST] 최근 거래일 종가(백엔드가 내려주면 표시)
+  final double? close;
 
 
   NotificationEvent({
@@ -24,6 +26,7 @@ class NotificationEvent {
     required this.message,
     required this.createdAt,
     required this.read,
+    this.close,
   });
 
   factory NotificationEvent.fromJson(Map<String, dynamic> json) {
@@ -37,6 +40,7 @@ class NotificationEvent {
       message: json['message'],
       createdAt: json['created_at'],
       read: json['read'],
+      close: (json['close'] as num?)?.toDouble(),
     );
   }
 }

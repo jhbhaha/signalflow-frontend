@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../models/analysis_response.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 import '../models/signal_history_item.dart';
 import '../models/attack_statistics.dart';
 // [2026-05-13 14:05 KST] 상태 변화 점수 차트 패키지 추가
@@ -964,7 +966,8 @@ class _StockDetailPageState extends State<StockDetailPage> {
                                 _buildMetricTile(
                                   icon: Icons.payments_rounded,
                                   title: '종가',
-                                  value: '${_analysis?.close ?? '-'}',
+                                  // [Modified by Claude | 2026-08-27 KST] 최근 종가를 84,500원 형식으로 표시
+                                  value: formatWonPrice(_analysis?.close) ?? '-',
                                 ),
                                 _buildMetricTile(
                                   icon: Icons.show_chart_rounded,

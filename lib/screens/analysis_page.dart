@@ -10,6 +10,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/recommendation_item.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 import '../widgets/dashboard/recommendation_card.dart';
 import 'analysis_result_page.dart';
 
@@ -285,12 +287,15 @@ class _AnalysisPageState extends State<AnalysisPage> {
       children: _searchResults.map((item) {
         final ticker = (item['ticker'] ?? '').toString();
         final stockName = (item['stock_name'] ?? '').toString();
+        // [Modified by Claude | 2026-08-27 KST]
+        // 검색 결과 API가 close를 내려주면 종목코드 옆에 최근 종가를 함께 표시
+        final priceText = formatWonPrice(item['close'] as num?);
 
         return Card(
           child: ListTile(
             leading: const Icon(Icons.show_chart_rounded),
             title: Text(stockName.isEmpty ? ticker : stockName),
-            subtitle: Text(ticker),
+            subtitle: Text(priceText == null ? ticker : '$ticker · $priceText'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () {
               _openAnalysis(

@@ -7,6 +7,8 @@ import 'package:fl_chart/fl_chart.dart';
 
 import '../models/signal_history_item.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 
 class SignalDetailHistoryPage extends StatefulWidget {
   final String ticker;
@@ -197,6 +199,18 @@ class _SignalDetailHistoryPageState extends State<SignalDetailHistoryPage> {
                   fontSize: 28,
                 ),
               ),
+              // [Modified by Claude | 2026-08-27 KST] 최근 종가(백엔드가 close 제공 시 표시)
+              if (formatWonPrice(latest.close) != null) ...[
+                const SizedBox(width: 12),
+                Text(
+                  formatWonPrice(latest.close)!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 14),

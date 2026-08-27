@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/signal_history_item.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 
 class SignalHistoryPage extends StatefulWidget {
   const SignalHistoryPage({super.key});
@@ -184,13 +186,29 @@ class _SignalHistoryPageState extends State<SignalHistoryPage> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    item.ticker,
-                    style: TextStyle(
-                      color: Theme.of(context).textTheme.bodyMedium?.color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  Wrap(
+                    spacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        item.ticker,
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      // [Modified by Claude | 2026-08-27 KST] 최근 종가(백엔드가 close 제공 시 표시)
+                      if (formatWonPrice(item.close) != null)
+                        Text(
+                          formatWonPrice(item.close)!,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 9),
                   Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/dashboard_summary.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 
 class AttackListPage extends StatelessWidget {
   final List<TopSignal> signals;
@@ -40,6 +42,8 @@ class AttackListPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 final item = attackSignals[index];
                 final color = _statusColor(item.finalStatus);
+                // [Modified by Claude | 2026-08-27 KST] 최근 종가(있을 때만) 표시
+                final priceText = formatWonPrice(item.close);
 
                 return Material(
                   color: Theme.of(context).cardColor,
@@ -65,7 +69,11 @@ class AttackListPage extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
-                    subtitle: Text(item.ticker),
+                    subtitle: Text(
+                      priceText == null
+                          ? item.ticker
+                          : '${item.ticker} · $priceText',
+                    ),
                     trailing: Text(
                       '${item.finalScore}\uC810',
                       style: TextStyle(

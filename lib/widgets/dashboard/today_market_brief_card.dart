@@ -2,15 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/dashboard_summary.dart';
 import '../../models/recommendation_item.dart';
-
-// [Modified by Codex | 2026-08-27 15:51 KST] 최근 종가 원화 표시 형식 통일
-String _formatWon(double value) {
-  final digits = value.round().toString().replaceAllMapped(
-        RegExp(r'\B(?=(\d{3})+(?!\d))'),
-        (match) => ',',
-      );
-  return '$digits원';
-}
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 형식을 공용 유틸로 통일
+import '../../utils/won_format.dart';
 
 class TodayMarketBriefCard extends StatelessWidget {
   const TodayMarketBriefCard({
@@ -360,10 +353,10 @@ class _SignalBriefRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (close != null) ...[
+                if (formatWonPrice(close) != null) ...[
                   const SizedBox(width: 10),
                   Text(
-                    _formatWon(close!),
+                    formatWonPrice(close)!,
                     maxLines: 1,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onSurface,

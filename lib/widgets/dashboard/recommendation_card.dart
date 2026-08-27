@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../models/recommendation_item.dart';
-
-// [Modified by Codex | 2026-08-27 15:51 KST] 최근 종가 원화 표시 형식 통일
-String _formatWon(double value) {
-  final digits = value.round().toString().replaceAllMapped(
-        RegExp(r'\B(?=(\d{3})+(?!\d))'),
-        (match) => ',',
-      );
-  return '$digits원';
-}
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 형식을 공용 유틸로 통일
+import '../../utils/won_format.dart';
 
 class RecommendationCard extends StatelessWidget {
   const RecommendationCard({
@@ -227,10 +220,10 @@ class _RecommendationTile extends StatelessWidget {
                   ),
                 ],
               ),
-              if (item.close != null) ...[
+              if (formatWonPrice(item.close) != null) ...[
                 const SizedBox(height: 2),
                 Text(
-                  _formatWon(item.close!),
+                  formatWonPrice(item.close)!,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 15,

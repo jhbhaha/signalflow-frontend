@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/dashboard_summary.dart';
 import '../../models/signal_history_item.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../../utils/won_format.dart';
 
 class TopSignalsCard extends StatelessWidget {
   const TopSignalsCard({
@@ -169,6 +171,7 @@ class TopSignalsCard extends StatelessWidget {
               return _TopSignalChangeRow(
                 ticker: signal.ticker,
                 stockName: signal.stockName,
+                close: signal.close,
                 status: _statusLabel(signal.finalStatus),
                 score: signal.finalScore,
                 scoreChange: scoreChange,
@@ -224,6 +227,7 @@ class _TopSignalChangeRow extends StatelessWidget {
   const _TopSignalChangeRow({
     required this.ticker,
     required this.stockName,
+    required this.close,
     required this.status,
     required this.score,
     required this.scoreChange,
@@ -235,6 +239,7 @@ class _TopSignalChangeRow extends StatelessWidget {
 
   final String ticker;
   final String stockName;
+  final double? close;
   final String status;
   final int score;
   final int scoreChange;
@@ -317,6 +322,16 @@ class _TopSignalChangeRow extends StatelessWidget {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
+                          // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시(값이 있을 때만)
+                          if (formatWonPrice(close) != null)
+                            Text(
+                              formatWonPrice(close)!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           _StatusPill(label: status, color: color),
                         ],
                       ),

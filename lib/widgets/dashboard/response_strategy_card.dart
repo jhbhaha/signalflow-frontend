@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 
 import '../../models/response_strategy.dart';
 import '../../screens/response_strategy_list_page.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../../utils/won_format.dart';
 
 typedef ResponseStrategyTapCallback = Future<void> Function({
   required String ticker,
@@ -359,6 +361,18 @@ class _ResponseStrategyTile extends StatelessWidget {
                   ),
                 ],
               ),
+              // [Modified by Claude | 2026-08-27 KST] 최근 종가(백엔드가 close를 내려줄 때만 표시)
+              if (formatWonPrice(item.close) != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  formatWonPrice(item.close)!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               Row(
                 children: [

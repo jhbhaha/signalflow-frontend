@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/notification_event.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 import 'stock_detail_page.dart';
 
 class NotificationCenterPage extends StatefulWidget {
@@ -280,12 +282,29 @@ class _NotificationCenterPageState extends State<NotificationCenterPage> {
                       ],
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      event.ticker,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.58),
-                        fontWeight: FontWeight.w800,
-                      ),
+                    Wrap(
+                      spacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          event.ticker,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color:
+                                colorScheme.onSurface.withValues(alpha: 0.58),
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        // [Modified by Claude | 2026-08-27 KST]
+                        // 최근 종가(백엔드가 close 제공 시 표시)
+                        if (formatWonPrice(event.close) != null)
+                          Text(
+                            formatWonPrice(event.close)!,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurface,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 9),
                     Text(

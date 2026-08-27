@@ -6,6 +6,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/response_strategy.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 
 class ResponseStrategyListPage extends StatefulWidget {
   const ResponseStrategyListPage({
@@ -79,6 +81,11 @@ class _ResponseStrategyListPageState extends State<ResponseStrategyListPage> {
                 final item = widget.items[index];
                 final isSaved = _savedTickers.contains(item.ticker);
                 final accentColor = widget.accentColor;
+                // [Modified by Claude | 2026-08-27 KST] 최근 종가(있을 때만)
+                final priceText = formatWonPrice(item.close);
+                final subtitleText = priceText == null
+                    ? (item.strategyReason ?? item.ticker)
+                    : '$priceText · ${item.strategyReason ?? item.ticker}';
 
                 return Material(
                   color: Theme.of(context).cardColor,
@@ -107,7 +114,7 @@ class _ResponseStrategyListPageState extends State<ResponseStrategyListPage> {
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     subtitle: Text(
-                      item.strategyReason ?? item.ticker,
+                      subtitleText,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
