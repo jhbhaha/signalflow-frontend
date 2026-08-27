@@ -8,6 +8,9 @@ class RecommendationItem {
   final int finalScore;
   final String finalStatus;
   final String? etfReason;
+  // [Modified by Codex | 2026-08-27 15:51 KST] 추천 종목 최근 종가 필드 추가
+  final double? close;
+  final String? asofDate;
 
   RecommendationItem({
     required this.ticker,
@@ -15,6 +18,8 @@ class RecommendationItem {
     required this.finalScore,
     required this.finalStatus,
     required this.etfReason,
+    this.close,
+    this.asofDate,
   });
 
   factory RecommendationItem.fromJson(Map<String, dynamic> json) {
@@ -24,6 +29,8 @@ class RecommendationItem {
       finalScore: json['final_score'] ?? 0,
       finalStatus: json['final_status'] ?? '',
       etfReason: json['etf_reason'],
+      close: (json['close'] as num?)?.toDouble(),
+      asofDate: json['asof_date']?.toString(),
     );
   }
 }
