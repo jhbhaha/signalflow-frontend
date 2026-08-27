@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import '../../models/dashboard_summary.dart';
 import '../../models/recommendation_item.dart';
 
+// [Modified by Codex | 2026-08-27 15:51 KST] 최근 종가 원화 표시 형식 통일
+String _formatWon(double value) {
+  final digits = value.round().toString().replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (match) => ',',
+      );
+  return '$digits원';
+}
+
 class TodayMarketBriefCard extends StatelessWidget {
   const TodayMarketBriefCard({
     super.key,
@@ -158,6 +167,7 @@ class TodayMarketBriefCard extends StatelessWidget {
                       name: signal.stockName,
                       ticker: signal.ticker,
                       score: signal.finalScore,
+                      close: signal.close,
                       color: _statusColor(signal.finalStatus),
                       onTap: () => onSignalTap(
                         ticker: signal.ticker,
@@ -297,6 +307,7 @@ class _SignalBriefRow extends StatelessWidget {
     required this.name,
     required this.ticker,
     required this.score,
+    required this.close,
     required this.color,
     required this.onTap,
   });
@@ -304,6 +315,7 @@ class _SignalBriefRow extends StatelessWidget {
   final String name;
   final String ticker;
   final int score;
+  final double? close;
   final Color color;
   final VoidCallback onTap;
 
@@ -348,6 +360,19 @@ class _SignalBriefRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (close != null) ...[
+                  const SizedBox(width: 10),
+                  Text(
+                    _formatWon(close!),
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 9,

@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 import 'package:flutter_stock_frontend/models/price_chart_point.dart';
 import 'package:flutter_stock_frontend/widgets/analysis_price_chart_card.dart';
@@ -52,6 +53,29 @@ Future<void> _expectNoEdgeLabelCollision(
 }
 
 void main() {
+  // [Modified by Codex | 2026-08-27 15:51 KST] 마지막 종가 고정 tooltip 회귀 테스트 추가
+  testWidgets('keeps the latest close spot as a fixed tooltip indicator',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AnalysisPriceChartCard(
+            items: _buildItems([83000, 84000, 84500]),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final chart = tester.widget<LineChart>(find.byType(LineChart));
+    final indicator = chart.data.showingTooltipIndicators.single;
+    final latestSpot = indicator.showingSpots.single;
+
+    expect(latestSpot.x, 2);
+    expect(latestSpot.y, 84500);
+    expect(chart.data.lineTouchData.handleBuiltInTouches, isTrue);
+  });
+
   testWidgets('hides duplicated edge labels for a low price range (~10k)',
       (tester) async {
     await _expectNoEdgeLabelCollision(

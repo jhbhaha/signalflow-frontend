@@ -26,6 +26,15 @@ import '../widgets/admob_banner_ad_widget.dart';
 // 가격 차트 모델 추가 (Add price chart model)
 import '../models/price_chart_point.dart';
 
+// [Modified by Codex | 2026-08-27 15:51 KST] 최근 종가 원화 표시 형식 통일
+String _formatWon(double value) {
+  final digits = value.round().toString().replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'),
+        (match) => ',',
+      );
+  return '$digits원';
+}
+
 // [2026-05-27 14:10 KST]
 // ticker 기반 상세 분석 구조로 변경(Change to ticker-based detailed analysis structure)
 class AnalysisResultPage extends StatefulWidget {
@@ -992,6 +1001,36 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                   letterSpacing: 1.2,
                 ),
               ),
+
+              // [Modified by Codex | 2026-08-27 15:51 KST] 상세 상단에 기존 분석 응답의 최근 종가 표시
+              if (close > 0) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      '최근 종가',
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        _formatWon(close),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 22),
 

@@ -52,6 +52,35 @@ class AnalysisPriceChartCard extends StatelessWidget {
       );
     }
 
+    final closeLine = _line(
+      values: items.map((e) => e.close).toList(),
+      color: closeLineColor,
+    );
+    final lineBars = <LineChartBarData>[
+      closeLine,
+      _line(
+        values: items.map((e) => e.ma5).toList(),
+        color: const Color(0xFFEF4444),
+      ),
+      _line(
+        values: items.map((e) => e.ma20).toList(),
+        color: const Color(0xFFF59E0B),
+      ),
+      _line(
+        values: items.map((e) => e.ma60).toList(),
+        color: const Color(0xFF3B82F6),
+      ),
+    ];
+
+    // [Modified by Codex | 2026-08-27 15:51 KST] 종가 마지막 spot의 고정 말풍선 구성
+    final fixedCloseTooltip = closeLine.spots.isEmpty
+        ? <ShowingTooltipIndicators>[]
+        : <ShowingTooltipIndicators>[
+            ShowingTooltipIndicators([
+              LineBarSpot(closeLine, 0, closeLine.spots.last),
+            ]),
+          ];
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -91,6 +120,26 @@ class AnalysisPriceChartCard extends StatelessWidget {
                     maxY: maxPrice * 1.02,
                     gridData: const FlGridData(show: true),
                     borderData: FlBorderData(show: false),
+                    showingTooltipIndicators: fixedCloseTooltip,
+                    lineTouchData: LineTouchData(
+                      handleBuiltInTouches: true,
+                      touchTooltipData: LineTouchTooltipData(
+                        fitInsideHorizontally: true,
+                        fitInsideVertically: true,
+                        getTooltipItems: (touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            return LineTooltipItem(
+                              '${formatPrice(spot.y)}원',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
                     titlesData: FlTitlesData(
                       rightTitles: const AxisTitles(
                         sideTitles: SideTitles(showTitles: false),
@@ -168,24 +217,7 @@ class AnalysisPriceChartCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    lineBarsData: [
-                      _line(
-                        values: items.map((e) => e.close).toList(),
-                        color: closeLineColor,
-                      ),
-                      _line(
-                        values: items.map((e) => e.ma5).toList(),
-                        color: const Color(0xFFEF4444),
-                      ),
-                      _line(
-                        values: items.map((e) => e.ma20).toList(),
-                        color: const Color(0xFFF59E0B),
-                      ),
-                      _line(
-                        values: items.map((e) => e.ma60).toList(),
-                        color: const Color(0xFF3B82F6),
-                      ),
-                    ],
+                    lineBarsData: lineBars,
                   ),
                 ),
               ),
