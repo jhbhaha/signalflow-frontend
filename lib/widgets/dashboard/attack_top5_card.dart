@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../models/dashboard_summary.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../../utils/won_format.dart';
 
 class AttackTop5Card extends StatelessWidget {
   const AttackTop5Card({
@@ -107,6 +109,7 @@ class AttackTop5Card extends StatelessWidget {
                 rank: rank,
                 ticker: signal.ticker,
                 stockName: signal.stockName,
+                close: signal.close,
                 score: signal.finalScore,
                 isNewAttack: isNewAttack,
                 onTap: () {
@@ -158,6 +161,7 @@ class _AttackRankingRow extends StatelessWidget {
     required this.rank,
     required this.ticker,
     required this.stockName,
+    required this.close,
     required this.score,
     required this.isNewAttack,
     required this.onTap,
@@ -166,6 +170,7 @@ class _AttackRankingRow extends StatelessWidget {
   final int rank;
   final String ticker;
   final String stockName;
+  final double? close;
   final int score;
   final bool isNewAttack;
   final VoidCallback onTap;
@@ -241,16 +246,32 @@ class _AttackRankingRow extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 3),
-                      Text(
-                        ticker,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.54),
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Wrap(
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            ticker,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.54),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시(값이 있을 때만)
+                          if (formatWonPrice(close) != null)
+                            Text(
+                              formatWonPrice(close)!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onSurface,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),

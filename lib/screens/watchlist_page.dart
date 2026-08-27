@@ -5,6 +5,8 @@ import '../models/analysis_response.dart';
 import '../models/signal_history_item.dart';
 import '../models/watch_item.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 import 'stock_detail_page.dart';
 
 class WatchlistPage extends StatefulWidget {
@@ -356,6 +358,8 @@ class _WatchlistPageState extends State<WatchlistPage> {
     final status = result.finalStatus ?? 'WAIT';
     final statusColor = _statusColor(status);
     final score = result.finalScore ?? 0;
+    // [Modified by Claude | 2026-08-27 KST] 최근 종가(있을 때만)
+    final priceText = formatWonPrice(result.close);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -379,6 +383,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
               ),
             ),
           ),
+          if (priceText != null) ...[
+            const SizedBox(width: 10),
+            Text(
+              priceText,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+              ),
+            ),
+          ],
           const SizedBox(width: 10),
           Text(
             '$score\uC810',
@@ -576,15 +591,18 @@ class _WatchlistPageState extends State<WatchlistPage> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
+                        // [Modified by Claude | 2026-08-27 KST]
+                        // \uCD5C\uADFC \uC885\uAC00\uB97C 84,500\uC6D0 \uD615\uC2DD\uC73C\uB85C \uD45C\uC2DC(\uC5C6\uC73C\uBA74 \uBD84\uC11D \uB300\uAE30)
                         Text(
-                          close > 0
-                              ? close.toStringAsFixed(0)
-                              : '\uBD84\uC11D \uB300\uAE30',
+                          formatWonPrice(close) ?? '\uBD84\uC11D \uB300\uAE30',
                           style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
+                            color: formatWonPrice(close) != null
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Theme.of(context).textTheme.bodyMedium?.color,
                             fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: formatWonPrice(close) != null
+                                ? FontWeight.w900
+                                : FontWeight.w700,
                           ),
                         ),
                         if (gap != null)

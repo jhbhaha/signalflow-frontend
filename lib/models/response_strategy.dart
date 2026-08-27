@@ -11,6 +11,9 @@ class ResponseStrategyItem {
   final String strategyType;
   final String? strategyLevel;
   final String? strategyReason;
+  // [Modified by Claude | 2026-08-27 KST] 최근 거래일 종가 필드 추가(백엔드가 내려주면 표시)
+  final double? close;
+  final String? asofDate;
 
   ResponseStrategyItem({
     required this.ticker,
@@ -20,6 +23,8 @@ class ResponseStrategyItem {
     required this.strategyType,
     required this.strategyLevel,
     required this.strategyReason,
+    this.close,
+    this.asofDate,
   });
 
   factory ResponseStrategyItem.fromJson(Map<String, dynamic> json) {
@@ -31,6 +36,8 @@ class ResponseStrategyItem {
       strategyType: json['strategy_type'] ?? '',
       strategyLevel: json['strategy_level'],
       strategyReason: json['strategy_reason'],
+      close: (json['close'] as num?)?.toDouble(),
+      asofDate: json['asof_date']?.toString(),
     );
   }
 }

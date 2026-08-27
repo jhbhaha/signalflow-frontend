@@ -25,15 +25,8 @@ import '../widgets/analysis_price_chart_card.dart';
 import '../widgets/admob_banner_ad_widget.dart';
 // 가격 차트 모델 추가 (Add price chart model)
 import '../models/price_chart_point.dart';
-
-// [Modified by Codex | 2026-08-27 15:51 KST] 최근 종가 원화 표시 형식 통일
-String _formatWon(double value) {
-  final digits = value.round().toString().replaceAllMapped(
-        RegExp(r'\B(?=(\d{3})+(?!\d))'),
-        (match) => ',',
-      );
-  return '$digits원';
-}
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 원화 표시 형식을 공용 유틸로 통일
+import '../utils/won_format.dart';
 
 // [2026-05-27 14:10 KST]
 // ticker 기반 상세 분석 구조로 변경(Change to ticker-based detailed analysis structure)
@@ -1003,7 +996,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               ),
 
               // [Modified by Codex | 2026-08-27 15:51 KST] 상세 상단에 기존 분석 응답의 최근 종가 표시
-              if (close > 0) ...[
+              if (formatWonPrice(close) != null) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -1018,7 +1011,7 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
                     const SizedBox(width: 10),
                     Flexible(
                       child: Text(
-                        _formatWon(close),
+                        formatWonPrice(close)!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1375,7 +1368,9 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               _buildInfoRow('종목명', stockName),
               _buildInfoRow('종목코드', ticker),
               _buildInfoRow('기준일', asofDate),
-              _buildInfoRow('종가', close.toStringAsFixed(0)),
+              // [Modified by Claude | 2026-08-27 KST] 종가도 원화 형식으로 통일, 값이 없으면 행 숨김
+              if (formatWonPrice(close) != null)
+                _buildInfoRow('종가', formatWonPrice(close)!),
               const SizedBox(height: 12),
               // [2026-06-02 13:40 KST]
               // 상태 이력 화면 이동 버튼

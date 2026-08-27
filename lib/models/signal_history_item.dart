@@ -9,6 +9,8 @@ class SignalHistoryItem {
   final String? previousStatus;
   final String currentStatus;
   final int finalScore;
+  // [Modified by Claude | 2026-08-27 KST] 최근 거래일 종가(백엔드가 내려주면 표시)
+  final double? close;
 
   SignalHistoryItem({
     required this.timestamp,
@@ -17,6 +19,7 @@ class SignalHistoryItem {
     required this.previousStatus,
     required this.currentStatus,
     required this.finalScore,
+    this.close,
   });
 
   factory SignalHistoryItem.fromJson(Map<String, dynamic> json) {
@@ -29,6 +32,7 @@ class SignalHistoryItem {
       finalScore: json['final_score'] is int
           ? json['final_score']
           : int.tryParse(json['final_score']?.toString() ?? '0') ?? 0,
+      close: (json['close'] as num?)?.toDouble(),
     );
   }
 }

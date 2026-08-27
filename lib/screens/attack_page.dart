@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/analysis_response.dart';
 import '../services/api_service.dart';
+// [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
+import '../utils/won_format.dart';
 
 class AttackPage extends StatefulWidget {
   const AttackPage({super.key});
@@ -321,14 +323,33 @@ class _AttackPageState extends State<AttackPage> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          item.ticker,
-                          style: TextStyle(
-                            color:
-                                Theme.of(context).textTheme.bodyMedium?.color,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        Wrap(
+                          spacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              item.ticker,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            // [Modified by Claude | 2026-08-27 KST] 최근 종가(있을 때만)
+                            if (formatWonPrice(item.close) != null)
+                              Text(
+                                formatWonPrice(item.close)!,
+                                style: TextStyle(
+                                  color:
+                                      Theme.of(context).colorScheme.onSurface,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                          ],
                         ),
                       ],
                     ),
