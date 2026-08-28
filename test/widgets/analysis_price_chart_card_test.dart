@@ -27,6 +27,47 @@ List<PriceChartPoint> _buildItems(List<double> closes) {
   ];
 }
 
+// [Modified by Claude | 2026-08-28 KST] close + ma5/ma20/ma60 를 모두 채워
+// 실제로 4개 라인이 생성되는 데이터.
+List<PriceChartPoint> _buildItemsWithMa() {
+  return [
+    for (var i = 0; i < 6; i++)
+      PriceChartPoint(
+        date: '2026-08-${(i + 1).toString().padLeft(2, '0')}',
+        close: 84000 + i * 100,
+        ma5: 83000 + i * 100,
+        ma20: 82000 + i * 100,
+        ma60: 79000 + i * 100,
+      ),
+  ];
+}
+
+// 지정한 barIndex 라인의 터치 툴팁 항목을 계산한다.
+// barIndex: 0=종가, 1=MA5, 2=MA20, 3=MA60
+Future<LineTooltipItem> _tooltipItemFor(
+  WidgetTester tester,
+  int barIndex,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: AnalysisPriceChartCard(items: _buildItemsWithMa()),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final chart = tester.widget<LineChart>(find.byType(LineChart));
+  final bars = chart.data.lineBarsData;
+  expect(bars.length, 4, reason: '종가 + MA5/MA20/MA60 = 4개 라인이 있어야 함');
+
+  final bar = bars[barIndex];
+  final spot = LineBarSpot(bar, barIndex, bar.spots.last);
+  final items =
+      chart.data.lineTouchData.touchTooltipData.getTooltipItems([spot]);
+  return items.single!;
+}
+
 Future<void> _expectNoEdgeLabelCollision(
   WidgetTester tester,
   List<double> closes,
@@ -74,6 +115,36 @@ void main() {
     expect(latestSpot.x, 2);
     expect(latestSpot.y, 84500);
     expect(chart.data.lineTouchData.handleBuiltInTouches, isTrue);
+  });
+
+  // [Modified by Claude | 2026-08-28 KST]
+  // 터치 툴팁에서 각 값이 어느 이동평균선인지 라벨 + 색으로 구분되는지 회귀 검증.
+  testWidgets('MA5 tooltip is labeled "MA5" and uses the MA5 line color',
+      (tester) async {
+    final item = await _tooltipItemFor(tester, 1);
+    expect(item.text, contains('MA5'));
+    expect(item.textStyle.color, const Color(0xFFEF4444));
+  });
+
+  testWidgets('MA20 tooltip is labeled "MA20" and uses the MA20 line color',
+      (tester) async {
+    final item = await _tooltipItemFor(tester, 2);
+    expect(item.text, contains('MA20'));
+    expect(item.textStyle.color, const Color(0xFFF59E0B));
+  });
+
+  testWidgets('MA60 tooltip is labeled "MA60" and uses the MA60 line color',
+      (tester) async {
+    final item = await _tooltipItemFor(tester, 3);
+    expect(item.text, contains('MA60'));
+    expect(item.textStyle.color, const Color(0xFF3B82F6));
+  });
+
+  testWidgets('close tooltip is labeled "종가" and stays white',
+      (tester) async {
+    final item = await _tooltipItemFor(tester, 0);
+    expect(item.text, contains('종가'));
+    expect(item.textStyle.color, Colors.white);
   });
 
   testWidgets('hides duplicated edge labels for a low price range (~10k)',

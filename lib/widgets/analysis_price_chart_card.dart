@@ -127,11 +127,26 @@ class AnalysisPriceChartCard extends StatelessWidget {
                         fitInsideHorizontally: true,
                         fitInsideVertically: true,
                         getTooltipItems: (touchedSpots) {
+                          // [Modified by Claude | 2026-08-28 KST]
+                          // 터치 툴팁에서 각 값이 어느 라인인지 즉시 구분되도록
+                          // barIndex 기준 라벨(종가/MA5/MA20/MA60)을 붙이고,
+                          // 글자색을 해당 라인 색(spot.bar.color)과 일치시킨다.
+                          // 종가(barIndex 0)는 어두운 툴팁 배경 대비를 위해
+                          // 흰색을 유지한다.
+                          const labels = ['종가', 'MA5', 'MA20', 'MA60'];
                           return touchedSpots.map((spot) {
+                            final label = spot.barIndex >= 0 &&
+                                    spot.barIndex < labels.length
+                                ? labels[spot.barIndex]
+                                : '';
+                            final prefix = label.isEmpty ? '' : '$label ';
+                            final tooltipColor = spot.barIndex == 0
+                                ? Colors.white
+                                : (spot.bar.color ?? Colors.white);
                             return LineTooltipItem(
-                              '${formatPrice(spot.y)}원',
-                              const TextStyle(
-                                color: Colors.white,
+                              '$prefix${formatPrice(spot.y)}원',
+                              TextStyle(
+                                color: tooltipColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
                               ),
