@@ -8,63 +8,39 @@ import 'package:flutter/material.dart';
 import '../models/response_strategy.dart';
 // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
 import '../utils/won_format.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 별을 공통 store 기반 토글 버튼으로 통일
+import '../widgets/watchlist_star_button.dart';
 
-class ResponseStrategyListPage extends StatefulWidget {
+// [Modified by Codex | 2026-08-28 KST]
+// 부모(savedTickers)를 initState 에서 복사하던 구조 제거.
+// 관심종목 상태는 WatchlistStore 하나만 바라보므로 StatefulWidget 이 필요 없다.
+class ResponseStrategyListPage extends StatelessWidget {
   const ResponseStrategyListPage({
     super.key,
     required this.title,
     required this.accentColor,
     required this.emptyMessage,
     required this.items,
-    required this.savedTickers,
     required this.onItemTap,
-    required this.onSaveTap,
   });
 
   final String title;
   final Color accentColor;
   final String emptyMessage;
   final List<ResponseStrategyItem> items;
-  final List<String> savedTickers;
   final Future<void> Function({required String ticker, required String stockName})
       onItemTap;
-  final Future<void> Function({required String ticker, required String stockName})
-      onSaveTap;
-
-  @override
-  State<ResponseStrategyListPage> createState() =>
-      _ResponseStrategyListPageState();
-}
-
-class _ResponseStrategyListPageState extends State<ResponseStrategyListPage> {
-  late List<String> _savedTickers;
-
-  @override
-  void initState() {
-    super.initState();
-    _savedTickers = [...widget.savedTickers];
-  }
-
-  Future<void> _handleSaveTap(ResponseStrategyItem item) async {
-    await widget.onSaveTap(ticker: item.ticker, stockName: item.stockName);
-
-    if (!mounted) return;
-
-    setState(() {
-      _savedTickers.add(item.ticker);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: widget.items.isEmpty
+      appBar: AppBar(title: Text(title)),
+      body: items.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  widget.emptyMessage,
+                  emptyMessage,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).textTheme.bodyMedium?.color,
@@ -75,12 +51,10 @@ class _ResponseStrategyListPageState extends State<ResponseStrategyListPage> {
             )
           : ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: widget.items.length,
+              itemCount: items.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final item = widget.items[index];
-                final isSaved = _savedTickers.contains(item.ticker);
-                final accentColor = widget.accentColor;
+                final item = items[index];
                 // [Modified by Claude | 2026-08-27 KST] 최근 종가(있을 때만)
                 final priceText = formatWonPrice(item.close);
                 final subtitleText = priceText == null
@@ -128,22 +102,15 @@ class _ResponseStrategyListPageState extends State<ResponseStrategyListPage> {
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        IconButton(
-                          tooltip: isSaved ? '저장됨' : '관심종목 저장',
-                          icon: Icon(
-                            isSaved
-                                ? Icons.check_circle_rounded
-                                : Icons.star_border_rounded,
-                            color: isSaved
-                                ? const Color(0xFF64748B)
-                                : const Color(0xFFF59E0B),
-                          ),
-                          onPressed:
-                              isSaved ? null : () => _handleSaveTap(item),
+                        // [Modified by Codex | 2026-08-28 KST]
+                        // 저장 후 비활성화되던 별을 공통 store 기반 toggle 버튼으로 교체
+                        WatchlistStarButton(
+                          ticker: item.ticker,
+                          stockName: item.stockName,
                         ),
                       ],
                     ),
-                    onTap: () => widget.onItemTap(
+                    onTap: () => onItemTap(
                       ticker: item.ticker,
                       stockName: item.stockName,
                     ),

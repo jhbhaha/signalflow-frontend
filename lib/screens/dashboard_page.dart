@@ -6,6 +6,8 @@ import 'package:shimmer/shimmer.dart';
 
 import '../models/dashboard_summary.dart';
 import '../services/api_service.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 공통 상태 저장소
+import '../services/watchlist_store.dart';
 import 'attack_list_page.dart';
 import '../models/recommendation_item.dart';
 import 'dart:async';
@@ -49,7 +51,6 @@ class _DashboardPageState extends State<DashboardPage>
   // 대시보드 자동 새로고침 타이머
   // (Dashboard auto refresh timer)
   Timer? _autoRefreshTimer;
-  List<String> _savedTickers = [];
   final ApiService _apiService = ApiService();
 
   late final DashboardCacheService _dashboardCacheService;
@@ -131,7 +132,9 @@ class _DashboardPageState extends State<DashboardPage>
     }
 
     _loadSummary();
-    _loadSavedTickers();
+    // [Modified by Codex | 2026-08-28 KST]
+    // 화면별 _savedTickers 대신 공통 WatchlistStore 를 최초 1회 로딩한다.
+    WatchlistStore.instance.ensureLoaded();
     // [Added by Claude | 2026-08-10 KST]
     // "오늘의 대응 전략"은 대시보드 핵심 데이터와 독립적으로 로딩
     // (이 API가 실패해도 대시보드 전체가 오류 상태로 빠지지 않도록 분리)
@@ -335,21 +338,6 @@ class _DashboardPageState extends State<DashboardPage>
     _previousAttackTickers = currentAttackTickers;
   }
 
-  // 저장된 관심종목 ticker 목록 불러오기
-  Future<void> _loadSavedTickers() async {
-    try {
-      final items = await _apiService.fetchWatchlistItems();
-
-      if (!mounted) return;
-
-      setState(() {
-        _savedTickers = items.map((e) => e.ticker).toList();
-      });
-    } catch (e) {
-      debugPrint('watchlist load error: $e');
-    }
-  }
-
   // 읽지 않은 알림 이벤트가 있으면 로컬 알림 표시 (Show local notification when unread event exists)
   Future<void> _checkAndShowUnreadNotification() async {
     try {
@@ -392,41 +380,6 @@ class _DashboardPageState extends State<DashboardPage>
     }
 
     return const Color(0xFF64748B);
-  }
-
-  // [Modified by Claude | 2026-08-10 KST]
-  // 기존 "추천 종목 저장" 로직을 ticker/stockName 기반으로 일반화.
-  // "오늘의 대응 전략" 카드(공격/회복/위험 각 탭)에서도 동일하게 재사용한다.
-  Future<void> _saveTickerToWatchlist({
-    required String ticker,
-    required String stockName,
-  }) async {
-    try {
-      await _apiService.addWatchlistItem(
-        ticker: ticker,
-        stockName: stockName,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _savedTickers.add(ticker);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$stockName 저장 완료'),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('저장 실패: $e'),
-        ),
-      );
-    }
   }
 
   // [2026-05-22 13:10 KST]
@@ -637,9 +590,7 @@ class _DashboardPageState extends State<DashboardPage>
                     strategy: _responseStrategy,
                     isLoading: _isResponseStrategyLoading,
                     hasError: _hasResponseStrategyError,
-                    savedTickers: _savedTickers,
                     onItemTap: _openAnalysisWithCache,
-                    onSaveTap: _saveTickerToWatchlist,
                   ),
             const SizedBox(height: 20),
 

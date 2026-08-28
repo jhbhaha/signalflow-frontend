@@ -3,23 +3,21 @@ import 'package:flutter/material.dart';
 import '../../models/recommendation_item.dart';
 // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 형식을 공용 유틸로 통일
 import '../../utils/won_format.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 별을 공통 store 기반 토글 버튼으로 통일
+import '../watchlist_star_button.dart';
 
 class RecommendationCard extends StatelessWidget {
   const RecommendationCard({
     super.key,
     required this.recommendations,
-    required this.savedTickers,
     required this.onItemTap,
-    required this.onSaveTap,
   });
 
   final List<RecommendationItem> recommendations;
-  final List<String> savedTickers;
   final Future<void> Function({
     required String ticker,
     required String stockName,
   }) onItemTap;
-  final Future<void> Function(RecommendationItem item) onSaveTap;
 
   Color _statusColor(String status) {
     if (status.startsWith('ATTACK')) return const Color(0xFFEF4444);
@@ -110,12 +108,10 @@ class RecommendationCard extends StatelessWidget {
           else
             ...recommendations.map((item) {
               final statusColor = _statusColor(item.finalStatus);
-              final isSaved = savedTickers.contains(item.ticker);
 
               return _RecommendationTile(
                 item: item,
                 statusColor: statusColor,
-                isSaved: isSaved,
                 tags: _buildReasonTags(
                   finalStatus: item.finalStatus,
                   finalScore: item.finalScore,
@@ -124,7 +120,6 @@ class RecommendationCard extends StatelessWidget {
                 onTap: () {
                   onItemTap(ticker: item.ticker, stockName: item.stockName);
                 },
-                onSaveTap: isSaved ? null : () => onSaveTap(item),
               );
             }),
         ],
@@ -167,18 +162,14 @@ class _RecommendationTile extends StatelessWidget {
   const _RecommendationTile({
     required this.item,
     required this.statusColor,
-    required this.isSaved,
     required this.tags,
     required this.onTap,
-    required this.onSaveTap,
   });
 
   final RecommendationItem item;
   final Color statusColor;
-  final bool isSaved;
   final List<Widget> tags;
   final VoidCallback onTap;
-  final VoidCallback? onSaveTap;
 
   @override
   Widget build(BuildContext context) {
@@ -210,13 +201,11 @@ class _RecommendationTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: isSaved ? '저장됨' : '관심종목 저장',
-                    icon: Icon(
-                      isSaved ? Icons.check_circle_rounded : Icons.star_border_rounded,
-                      color: isSaved ? const Color(0xFF64748B) : const Color(0xFFF59E0B),
-                    ),
-                    onPressed: onSaveTap,
+                  // [Modified by Codex | 2026-08-28 KST]
+                  // 저장 후 비활성화되던 별을 공통 store 기반 toggle 버튼으로 교체
+                  WatchlistStarButton(
+                    ticker: item.ticker,
+                    stockName: item.stockName,
                   ),
                 ],
               ),

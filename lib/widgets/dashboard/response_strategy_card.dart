@@ -10,6 +10,8 @@ import '../../models/response_strategy.dart';
 import '../../screens/response_strategy_list_page.dart';
 // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
 import '../../utils/won_format.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 별을 공통 store 기반 토글 버튼으로 통일
+import '../watchlist_star_button.dart';
 
 typedef ResponseStrategyTapCallback = Future<void> Function({
   required String ticker,
@@ -62,17 +64,13 @@ class ResponseStrategyCard extends StatefulWidget {
     required this.strategy,
     required this.isLoading,
     required this.hasError,
-    required this.savedTickers,
     required this.onItemTap,
-    required this.onSaveTap,
   });
 
   final ResponseStrategy? strategy;
   final bool isLoading;
   final bool hasError;
-  final List<String> savedTickers;
   final ResponseStrategyTapCallback onItemTap;
-  final ResponseStrategyTapCallback onSaveTap;
 
   @override
   State<ResponseStrategyCard> createState() => _ResponseStrategyCardState();
@@ -256,22 +254,13 @@ class _ResponseStrategyCardState extends State<ResponseStrategyCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ...visibleItems.map((item) {
-          final isSaved = widget.savedTickers.contains(item.ticker);
-
           return _ResponseStrategyTile(
             item: item,
             color: tab.color,
-            isSaved: isSaved,
             onTap: () => widget.onItemTap(
               ticker: item.ticker,
               stockName: item.stockName,
             ),
-            onSaveTap: isSaved
-                ? null
-                : () => widget.onSaveTap(
-                      ticker: item.ticker,
-                      stockName: item.stockName,
-                    ),
           );
         }),
         if (items.length > _kHomeVisibleLimit)
@@ -287,9 +276,7 @@ class _ResponseStrategyCardState extends State<ResponseStrategyCard> {
                       accentColor: tab.color,
                       emptyMessage: tab.emptyMessage,
                       items: items,
-                      savedTickers: widget.savedTickers,
                       onItemTap: widget.onItemTap,
-                      onSaveTap: widget.onSaveTap,
                     ),
                   ),
                 );
@@ -306,16 +293,12 @@ class _ResponseStrategyTile extends StatelessWidget {
   const _ResponseStrategyTile({
     required this.item,
     required this.color,
-    required this.isSaved,
     required this.onTap,
-    required this.onSaveTap,
   });
 
   final ResponseStrategyItem item;
   final Color color;
-  final bool isSaved;
   final VoidCallback onTap;
-  final VoidCallback? onSaveTap;
 
   @override
   Widget build(BuildContext context) {
@@ -347,17 +330,11 @@ class _ResponseStrategyTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: isSaved ? '저장됨' : '관심종목 저장',
-                    icon: Icon(
-                      isSaved
-                          ? Icons.check_circle_rounded
-                          : Icons.star_border_rounded,
-                      color: isSaved
-                          ? const Color(0xFF64748B)
-                          : const Color(0xFFF59E0B),
-                    ),
-                    onPressed: onSaveTap,
+                  // [Modified by Codex | 2026-08-28 KST]
+                  // 저장 후 비활성화되던 별을 공통 store 기반 toggle 버튼으로 교체
+                  WatchlistStarButton(
+                    ticker: item.ticker,
+                    stockName: item.stockName,
                   ),
                 ],
               ),
