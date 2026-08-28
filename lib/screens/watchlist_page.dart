@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -5,19 +6,25 @@ import '../models/analysis_response.dart';
 import '../models/signal_history_item.dart';
 import '../models/watch_item.dart';
 import '../services/api_service.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 공통 상태 저장소
+import '../services/watchlist_store.dart';
 // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
 import '../utils/won_format.dart';
 import 'stock_detail_page.dart';
 
 class WatchlistPage extends StatefulWidget {
-  const WatchlistPage({super.key});
+  // [Modified by Codex | 2026-08-28 KST]
+  // 테스트에서 ApiService 를 주입할 수 있도록 optional 파라미터 추가(운영 동작 동일).
+  const WatchlistPage({super.key, this.apiService});
+
+  final ApiService? apiService;
 
   @override
   State<WatchlistPage> createState() => _WatchlistPageState();
 }
 
 class _WatchlistPageState extends State<WatchlistPage> {
-  final ApiService _apiService = ApiService();
+  late final ApiService _apiService = widget.apiService ?? ApiService();
   final Map<String, List<SignalHistoryItem>> _signalHistoryCache = {};
 
   List<WatchItem> _watchItems = <WatchItem>[];
@@ -31,7 +38,54 @@ class _WatchlistPageState extends State<WatchlistPage> {
   @override
   void initState() {
     super.initState();
+    // [Added by Codex | 2026-08-28 KST]
+    // 다른 화면에서 관심종목이 추가/해제되면 공통 store 알림을 받아 즉시 반영한다.
+    WatchlistStore.instance.addListener(_onWatchlistStoreChanged);
     _loadWatchlist();
+  }
+
+  @override
+  void dispose() {
+    WatchlistStore.instance.removeListener(_onWatchlistStoreChanged);
+    super.dispose();
+  }
+
+  // [Added by Codex | 2026-08-28 KST]
+  // 공통 WatchlistStore 변경 이벤트 처리.
+  // - 다른 화면에서 해제된 종목: 목록/분석/캐시에서 즉시 제거
+  // - 다른 화면에서 추가된 종목: 서버에서 목록/분석을 다시 조회
+  // BottomNavigation index 감시가 아니라 상태 변경 이벤트로만 동기화한다.
+  void _onWatchlistStoreChanged() {
+    if (!mounted) return;
+
+    final storeTickers = WatchlistStore.instance.savedTickers;
+    final currentTickers = _watchItems.map((e) => e.ticker).toSet();
+
+    if (setEquals(storeTickers, currentTickers)) {
+      return;
+    }
+
+    final removedTickers = currentTickers
+        .where((ticker) => !storeTickers.contains(ticker))
+        .toList();
+
+    if (removedTickers.isNotEmpty) {
+      setState(() {
+        _watchItems.removeWhere((item) => removedTickers.contains(item.ticker));
+        _watchResults
+            .removeWhere((item) => removedTickers.contains(item.ticker));
+        for (final ticker in removedTickers) {
+          _signalHistoryCache.remove(ticker);
+        }
+      });
+    }
+
+    final hasNewTicker =
+        storeTickers.any((ticker) => !currentTickers.contains(ticker));
+
+    if (hasNewTicker && !_isLoading) {
+      _loadWatchlist();
+    }
   }
 
   Future<void> _loadSignalHistory(String ticker) async {
@@ -82,6 +136,11 @@ class _WatchlistPageState extends State<WatchlistPage> {
         _watchResults = results;
       });
 
+      // [Added by Codex | 2026-08-28 KST]
+      // 자체 조회한 목록을 공통 store 에 반영(추가 API 호출 없음).
+      // setState 이후에 호출해 store 알림으로 인한 재진입을 피한다.
+      WatchlistStore.instance.hydrate(items);
+
       for (final item in items) {
         _loadSignalHistory(item.ticker);
       }
@@ -102,12 +161,17 @@ class _WatchlistPageState extends State<WatchlistPage> {
 
   Future<void> _deleteWatchItem(String ticker) async {
     try {
-      await _apiService.deleteWatchlistItem(ticker);
+      // [Modified by Codex | 2026-08-28 KST]
+      // 삭제도 공통 WatchlistStore 경로로 통일한다.
+      // store 알림(_onWatchlistStoreChanged)이 목록/분석/캐시 정리를 처리하지만,
+      // 즉시성을 위해 여기서도 로컬 목록을 함께 정리한다.
+      await WatchlistStore.instance.remove(ticker);
       if (!mounted) return;
 
       setState(() {
         _watchItems.removeWhere((item) => item.ticker == ticker);
         _watchResults.removeWhere((item) => item.ticker == ticker);
+        _signalHistoryCache.remove(ticker);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

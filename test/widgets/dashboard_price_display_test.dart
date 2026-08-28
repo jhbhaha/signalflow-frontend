@@ -124,9 +124,7 @@ void main() {
           strategy: strategyWith(item(close: 84500)),
           isLoading: false,
           hasError: false,
-          savedTickers: const [],
           onItemTap: ({required ticker, required stockName}) async {},
-          onSaveTap: ({required ticker, required stockName}) async {},
         ),
       ),
     );
@@ -138,9 +136,7 @@ void main() {
           strategy: strategyWith(item()),
           isLoading: false,
           hasError: false,
-          savedTickers: const [],
           onItemTap: ({required ticker, required stockName}) async {},
-          onSaveTap: ({required ticker, required stockName}) async {},
         ),
       ),
     );

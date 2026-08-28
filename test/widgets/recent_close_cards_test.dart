@@ -68,9 +68,7 @@ void main() {
       _app(
         RecommendationCard(
           recommendations: [item],
-          savedTickers: const [],
           onItemTap: ({required ticker, required stockName}) async {},
-          onSaveTap: (_) async {},
         ),
       ),
     );
@@ -91,9 +89,7 @@ void main() {
       _app(
         RecommendationCard(
           recommendations: [item],
-          savedTickers: const [],
           onItemTap: ({required ticker, required stockName}) async {},
-          onSaveTap: (_) async {},
         ),
       ),
     );

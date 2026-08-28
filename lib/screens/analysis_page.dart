@@ -10,6 +10,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/recommendation_item.dart';
 import '../services/api_service.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 공통 상태 저장소
+import '../services/watchlist_store.dart';
 // [Modified by Claude | 2026-08-27 KST] 최근 종가 표시 공용 유틸
 import '../utils/won_format.dart';
 import '../widgets/dashboard/recommendation_card.dart';
@@ -37,11 +39,13 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
   List<dynamic> _searchResults = <dynamic>[];
   List<RecommendationItem> _recommendations = <RecommendationItem>[];
-  List<String> _savedTickers = <String>[];
 
   @override
   void initState() {
     super.initState();
+    // [Added by Codex | 2026-08-28 KST]
+    // 관심종목 여부는 공통 WatchlistStore 기준으로 표시한다.
+    WatchlistStore.instance.ensureLoaded();
     _loadAnalysisPageData();
   }
 
@@ -59,13 +63,9 @@ class _AnalysisPageState extends State<AnalysisPage> {
     });
 
     try {
-      final results = await Future.wait([
-        _apiService.fetchTopRecommendations(),
-        _apiService.fetchWatchlistItems(),
-      ]);
-
-      final recommendations = results[0] as List<RecommendationItem>;
-      final watchlistItems = results[1] as List<dynamic>;
+      // [Modified by Codex | 2026-08-28 KST]
+      // 관심종목 목록은 WatchlistStore 가 담당하므로 여기서는 추천 종목만 조회한다.
+      final recommendations = await _apiService.fetchTopRecommendations();
 
       recommendations.sort(
         (a, b) => b.finalScore.compareTo(a.finalScore),
@@ -75,9 +75,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
 
       setState(() {
         _recommendations = recommendations;
-        _savedTickers = watchlistItems.map((item) {
-          return item.ticker.toString();
-        }).toList();
         _isLoading = false;
       });
     } catch (_) {
@@ -179,37 +176,6 @@ class _AnalysisPageState extends State<AnalysisPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _saveRecommendationToWatchlist(
-    RecommendationItem item,
-  ) async {
-    try {
-      await _apiService.addWatchlistItem(
-        ticker: item.ticker,
-        stockName: item.stockName,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _savedTickers.add(item.ticker);
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${item.stockName} 저장 완료'),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('저장 실패: $error'),
-        ),
-      );
-    }
   }
 
   Widget _buildSearchBox() {
@@ -450,9 +416,7 @@ class _AnalysisPageState extends State<AnalysisPage> {
           const SizedBox(height: 12),
           RecommendationCard(
             recommendations: _recommendations,
-            savedTickers: _savedTickers,
             onItemTap: _openAnalysis,
-            onSaveTap: _saveRecommendationToWatchlist,
           ),
           const SizedBox(height: 20),
         ],

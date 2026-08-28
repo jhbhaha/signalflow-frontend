@@ -6,7 +6,8 @@ class WatchItem {
   final String ticker;
   final String stockName;
 
-  WatchItem({
+  // [Modified by Codex | 2026-08-28 KST] const 생성자로 변경(불변 데이터 모델)
+  const WatchItem({
     required this.ticker,
     required this.stockName,
   });

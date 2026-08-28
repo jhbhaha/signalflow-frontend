@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 // 분석 결과 화면에서 관심종목 저장 API 사용
 import '../services/api_service.dart';
+// [Added by Codex | 2026-08-28 KST] 관심종목 공통 상태 저장소
+import '../services/watchlist_store.dart';
 // [2026-06-13 15:45 KST]
 // 종합평가 재무점수 조회 서비스
 import '../services/company_analysis_service.dart';
@@ -63,8 +65,6 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
   int? _financialScore;
   String? _financialGrade;
-  // KST] 이미 관심종목에 저장된 종목인지 확인하기 위한 상태값 추가
-  bool _isSavedToWatchlist = false;
 
   @override
   void didChangeDependencies() {
@@ -74,6 +74,11 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
 
   Future<void> _loadAnalysis() async {
     if (!_isLoading) return;
+
+    // [Added by Codex | 2026-08-28 KST]
+    // 관심종목 여부는 공통 WatchlistStore 기준으로 표시한다.
+    // (분석 데이터 로딩과는 독립적으로 최초 1회만 목록을 조회)
+    WatchlistStore.instance.ensureLoaded();
 
     try {
       final analysis = await _apiService.analyzeSingle(
@@ -171,11 +176,6 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
         _chartItems = chartItems;
         _isLoading = false;
       });
-
-      // [2026-05-28 22:15 KST]
-      // 관심종목 저장 여부 확인 (Check watchlist saved state)
-      await _checkAlreadySaved();
-
     } catch (e) {
       if (!mounted) return;
 
@@ -186,35 +186,11 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
     }
   }
 
-  // [2026-04-27 17:30 KST] 현재 종목이 이미 관심종목에 저장되어 있는지 확인
-  Future<void> _checkAlreadySaved() async {
-    final result = _result;
-
-    if (result == null) {
-      return;
-    }
-
-    final ticker = (result['ticker'] ?? '').toString();
-
-    if (ticker.isEmpty) {
-      return;
-    }
-
-    try {
-      final items = await _apiService.fetchWatchlistItems();
-
-      if (!mounted) return;
-
-      setState(() {
-        _isSavedToWatchlist = items.any((item) => item.ticker == ticker);
-      });
-    } catch (_) {
-      // 저장 여부 확인 실패는 화면 표시를 막지 않음
-    }
-  }
-
-  // [2026-04-26 00:45 KST] 현재 분석 종목을 관심종목에 저장
-  Future<void> _saveToWatchlist() async {
+  // [Modified by Codex | 2026-08-28 KST]
+  // 기존 _checkAlreadySaved / _saveToWatchlist(add-only) 를
+  // 공통 WatchlistStore 기반 toggle 하나로 통합.
+  // 저장 여부 표시는 WatchlistStore.isSaved 를 구독해서 그린다.
+  Future<void> _toggleWatchlist() async {
     final result = _result;
 
     if (result == null) {
@@ -228,26 +204,31 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
       return;
     }
 
+    final wasSaved = WatchlistStore.instance.isSaved(ticker);
+
     try {
-      await _apiService.addWatchlistItem(
-        ticker: ticker,
-        stockName: stockName,
-      );
+      await WatchlistStore.instance.toggle(ticker, stockName);
 
       if (!mounted) return;
 
-      setState(() {
-        _isSavedToWatchlist = true;
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$stockName 관심종목에 저장했습니다.')),
+        SnackBar(
+          content: Text(
+            wasSaved
+                ? '$stockName 관심종목에서 해제했습니다.'
+                : '$stockName 관심종목에 저장했습니다.',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('관심종목 저장 실패: $e')),
+        SnackBar(
+          content: Text(
+            wasSaved ? '관심종목 해제 실패: $e' : '관심종목 저장 실패: $e',
+          ),
+        ),
       );
     }
   }
@@ -1412,18 +1393,26 @@ class _AnalysisResultPageState extends State<AnalysisResultPage> {
               ),
 
               const SizedBox(height: 12),
-              // [2026-04-26 00:45 KST] 분석 결과 화면에서 관심종목 저장 버튼 추가
+              // [Modified by Codex | 2026-08-28 KST]
+              // 저장 후 비활성화되던 버튼을 공통 store 기반 toggle 로 교체.
+              // 채워진 별 -> 탭 -> DELETE -> 빈 별 이 가능해야 한다.
               SizedBox(
                 width: double.infinity,
-                child: // [Modified by ChatGPT | 2026-04-27 17:30 KST] 이미 저장된 종목이면 버튼 비활성화
-                ElevatedButton.icon(
-                  onPressed: _isSavedToWatchlist ? null : _saveToWatchlist,
-                  icon: Icon(
-                    _isSavedToWatchlist ? Icons.check : Icons.star_outline,
-                  ),
-                  label: Text(
-                    _isSavedToWatchlist ? '저장됨' : '관심종목 저장',
-                  ),
+                child: ListenableBuilder(
+                  listenable: WatchlistStore.instance,
+                  builder: (context, _) {
+                    final saved = WatchlistStore.instance.isSaved(ticker);
+
+                    return ElevatedButton.icon(
+                      onPressed: _toggleWatchlist,
+                      icon: Icon(
+                        saved ? Icons.star : Icons.star_outline,
+                      ),
+                      label: Text(
+                        saved ? '관심종목 해제' : '관심종목 저장',
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
